@@ -33,7 +33,7 @@ var OnaAuth = React.createClass({
                 this.setState({isLoggedIn: true, data: data, loginError: false});
                 this.props.onLoginSuccess(data);
             }.bind(this), function(errorCode) {
-                this.setState({isLoggedIn: false, data: this.state.data, loginError: true});
+                this.setState({isLoggedIn: false, loginError: true});
                 console.error(this.props.url, errorCode.toString());
             }.bind(this)
         );
@@ -96,8 +96,6 @@ var OnaForms = React.createClass({
             headers: {'Authorization': 'Token ' + this.state.ona_user.api_token},
             success: function(data) {
                 this.setState({
-                    ona_user: this.state.ona_user,
-                    forms: this.state.forms,
                     formid: formid,
                     submissions: data});
             }.bind(this),
@@ -112,7 +110,7 @@ var OnaForms = React.createClass({
             dataType: "json",
             headers: {'Authorization': 'Token ' + this.state.ona_user.api_token},
             success: function(data) {
-                this.setState({ona_user: this.state.ona_user, forms: data});
+                this.setState({forms: data});
             }.bind(this),
             error: function(data) {
                 console.log(data);
