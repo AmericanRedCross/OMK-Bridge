@@ -1,4 +1,4 @@
-/* global React, $, console, DigestAuthRequest */
+/* global React, $, console, DigestAuthRequest,osmAuth */
 var OnaAuthForm = React.createClass({
     handleSubmit: function(e) {
         e.preventDefault();
@@ -126,6 +126,35 @@ var OnaForms = React.createClass({
     }
 });
 
+var OpenStreetMapAuth = React.createClass({
+    getInitialState: function() {
+        var auth = osmAuth({
+            oauth_consumer_key: this.props.oauthConsumerKey,
+            oauth_secret: this.props.oauthSecret
+        });
+
+        return {auth: auth};
+    },
+    handleOSMLogin: function() {
+        console.log("Drum roll ....");
+    },
+    handleOSMLogout: function() {
+        var auth = this.state.auth;
+
+        auth.logout();
+
+        this.setState({auth: auth});
+    },
+    render: function() {
+        return (
+            this.state.auth.authenticated() === false ?
+                React.createElement('button', {onClick: this.handleOSMLogin}, "Login to OpenStreetMap.org")
+                    :
+                React.createElement('button', {onClick: this.handleOSMLogout}, "Unlink OpenStreetMap.org")
+        );
+    }
+});
+
 var MainApp = React.createClass({
     getInitialState: function(){
         return {ona_user: null};
@@ -141,6 +170,10 @@ var MainApp = React.createClass({
                 React.createElement(OnaAuth, {
                     url: this.props.onaLoginURL,
                     onLoginSuccess: this.setOnaUser
+                }),
+                React.createElement(OpenStreetMapAuth, {
+                    oauthConsumerkey: 'OTlOD6gfLnzP0oot7uA0w6GZdBOc5gQXJ0r7cdG4',
+                    oauthSecret: 'cHPXxC3JCa9PazwVA5XOQkmh4jQcIdrhFePBmbSJ'
                 }),
                 this.state.ona_user !== null ? React.createElement(OnaForms, {ona_user: this.state.ona_user}): null
             )
