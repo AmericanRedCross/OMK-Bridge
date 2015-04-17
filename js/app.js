@@ -31,7 +31,7 @@ var OnaAuth = React.createClass({displayName: "OnaAuth",
         var req = new DigestAuthRequest('GET', this.props.url, username, password);
         req.request(function(data) {
                 this.setState({isLoggedIn: true, data: data, loginError: false});
-                console.log(data);
+                this.props.onLoginSuccess(data);
             }.bind(this), function(errorCode) {
                 this.setState({isLoggedIn: false, data: this.state.data, loginError: true});
                 console.error(this.props.url, errorCode.toString());
@@ -48,14 +48,103 @@ var OnaAuth = React.createClass({displayName: "OnaAuth",
         return (content);
     }
 });
+var FormRow = React.createClass({displayName: "FormRow",
+    loadSubmissions: function(e) {
+        this.props.onFormSelected(e.target.getAttribute('data'));
+    },
+    render: function() {
+        return React.createElement(
+            'tr', null,
+            React.createElement('td', null),
+            React.createElement('td', {onClick: this.loadSubmissions, data: this.props.form.formid}, this.props.form.id_string));
+    }
+});
+
+var FormList = React.createClass({displayName: "FormList",
+    render: function() {
+        var formNodes = this.props.data.map(function(form) {
+            return React.createElement(
+                FormRow, {onFormSelected: this.props.loadSubmissions, form: form, key: form.formid}
+            );
+        }.bind(this));
+        return (React.createElement(
+            'table', {className: 'form-list'},
+            formNodes
+        ));
+    }
+});
+
+var DataList = React.createClass({displayName: "DataList",
+    render: function() {
+        return (React.createElement('div', null, "Loaded " + this.props.data.length + " submissions."));
+    }
+});
+
+var OnaForms = React.createClass({displayName: "OnaForms",
+    getInitialState: function() {
+        return {
+            ona_user: this.props.ona_user,
+            forms: [],
+            formid: null,
+            submissions: []
+        };
+    },
+    loadSubmissions: function(formid) {
+        $.ajax({
+            url: "https://stage.ona.io/api/v1/data/" + formid + ".json",
+            dataType: "json",
+            headers: {'Authorization': 'Token ' + this.state.ona_user.api_token},
+            success: function(data) {
+                this.setState({
+                    ona_user: this.state.ona_user,
+                    forms: this.state.forms,
+                    formid: formid,
+                    submissions: data});
+            }.bind(this),
+            error: function(data) {
+                console.log(data);
+            }
+        });
+    },
+    componentDidMount: function() {
+        $.ajax({
+            url: "https://stage.ona.io/api/v1/forms.json",
+            dataType: "json",
+            headers: {'Authorization': 'Token ' + this.state.ona_user.api_token},
+            success: function(data) {
+                this.setState({ona_user: this.state.ona_user, forms: data});
+            }.bind(this),
+            error: function(data) {
+                console.log(data);
+            }
+        });
+    },
+    render: function(){
+        return (
+            this.state.submissions.length > 0 && this.state.formid !== null ?
+                React.createElement(DataList, {data: this.state.submissions}): React.createElement(
+            FormList, {data: this.state.forms, loadSubmissions: this.loadSubmissions}
+        ));
+    }
+});
 
 var MainApp = React.createClass({displayName: "MainApp",
+    getInitialState: function(){
+        return {ona_user: null};
+    },
+    setOnaUser: function(user) {
+        this.setState({ona_user: user});
+    },
     render: function(){
         return (
             React.createElement(
                 "div", {className: "main-container"},
                 React.createElement("h1", null, "Ona Osm Integration"),
-                React.createElement(OnaAuth, {url: this.props.onaLoginURL})
+                React.createElement(OnaAuth, {
+                    url: this.props.onaLoginURL,
+                    onLoginSuccess: this.setOnaUser
+                }),
+                this.state.ona_user !== null ? React.createElement(OnaForms, {ona_user: this.state.ona_user}): null
             )
         );
     }
