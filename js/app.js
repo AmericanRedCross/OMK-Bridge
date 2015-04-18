@@ -91,7 +91,7 @@ var OnaForms = React.createClass({displayName: "OnaForms",
     },
     loadSubmissions: function(formid) {
         $.ajax({
-            url: "https://stage.ona.io/api/v1/data/" + formid + ".json",
+            url: "http://localhost/api/v1/data/" + formid + ".json",
             dataType: "json",
             headers: {'Authorization': 'Token ' + this.state.ona_user.api_token},
             success: function(data) {
@@ -106,7 +106,7 @@ var OnaForms = React.createClass({displayName: "OnaForms",
     },
     componentDidMount: function() {
         $.ajax({
-            url: "https://stage.ona.io/api/v1/forms.json",
+            url: "http://localhost/api/v1/forms.json?instances_with_osm=True",
             dataType: "json",
             headers: {'Authorization': 'Token ' + this.state.ona_user.api_token},
             success: function(data) {
@@ -131,13 +131,15 @@ var OpenStreetMapAuth = React.createClass({displayName: "OpenStreetMapAuth",
         var auth = osmAuth({
             oauth_consumer_key: this.props.oauthConsumerKey,
             oauth_secret: this.props.oauthSecret,
-            auto: true
+            auto: true,
+            landing: this.props.landing
         });
 
         return {auth: auth};
     },
     handleOSMLogin: function() {
         var auth = this.state.auth;
+
         auth.xhr({
             method: 'GET',
             path: '/api/0.6/user/details'
@@ -146,15 +148,12 @@ var OpenStreetMapAuth = React.createClass({displayName: "OpenStreetMapAuth",
                 console.log(err);
             } else {
                 this.setState({details: details});
-                console.log(details);
             }
         }.bind(this));
     },
     handleOSMLogout: function() {
         var auth = this.state.auth;
-
         auth.logout();
-
         this.setState({auth: auth});
     },
     render: function() {
@@ -184,8 +183,9 @@ var MainApp = React.createClass({displayName: "MainApp",
                     onLoginSuccess: this.setOnaUser
                 }),
                 React.createElement(OpenStreetMapAuth, {
-                    oauthConsumerkey: 'OTlOD6gfLnzP0oot7uA0w6GZdBOc5gQXJ0r7cdG4',
-                    oauthSecret: 'cHPXxC3JCa9PazwVA5XOQkmh4jQcIdrhFePBmbSJ'
+                    oauthConsumerKey: 'OTlOD6gfLnzP0oot7uA0w6GZdBOc5gQXJ0r7cdG4',
+                    oauthSecret: 'cHPXxC3JCa9PazwVA5XOQkmh4jQcIdrhFePBmbSJ',
+                    landing: '/'
                 }),
                 this.state.ona_user !== null ? React.createElement(OnaForms, {ona_user: this.state.ona_user}): null
             )
@@ -193,7 +193,12 @@ var MainApp = React.createClass({displayName: "MainApp",
     }
 });
 
+if (window.location.href.search('oauth_token') !== -1){
+    opener.authComplete(window.location.href);
+    window.close();
+}
+
 React.render(
-    React.createElement(MainApp, {onaLoginURL: 'https://stage.ona.io/api/v1/user.json'}),
+    React.createElement(MainApp, {onaLoginURL: 'http://localhost/api/v1/user.json'}),
     document.getElementById("main")
 );
