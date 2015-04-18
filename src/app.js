@@ -130,13 +130,25 @@ var OpenStreetMapAuth = React.createClass({
     getInitialState: function() {
         var auth = osmAuth({
             oauth_consumer_key: this.props.oauthConsumerKey,
-            oauth_secret: this.props.oauthSecret
+            oauth_secret: this.props.oauthSecret,
+            auto: true
         });
 
         return {auth: auth};
     },
     handleOSMLogin: function() {
-        console.log("Drum roll ....");
+        var auth = this.state.auth;
+        auth.xhr({
+            method: 'GET',
+            path: '/api/0.6/user/details'
+        }, function(err, details) {
+            if (err) {
+                console.log(err);
+            } else {
+                this.setState({details: details});
+                console.log(details);
+            }
+        }.bind(this));
     },
     handleOSMLogout: function() {
         var auth = this.state.auth;
