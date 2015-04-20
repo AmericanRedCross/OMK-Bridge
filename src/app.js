@@ -1,4 +1,4 @@
-/* global React, $, console, DigestAuthRequest, osmAuth, store */
+/* global React, $, console, DigestAuthRequest, osmAuth, store, L */
 var OnaAuthForm = React.createClass({
     handleSubmit: function(e) {
         e.preventDefault();
@@ -62,14 +62,21 @@ var OnaAuth = React.createClass({
 var FormRow = React.createClass({
     loadSubmissions: function(e) {
         e.preventDefault();
-        this.props.onFormSelected(e.target.getAttribute('data'));
+        this.props.onFormSelected(
+            e.target.getAttribute('data-formid'),
+            e.target.getAttribute('data-title')
+        );
     },
     render: function() {
         return React.createElement(
             'tr', null,
             React.createElement(
                 'td', null, React.createElement(
-                    'a', {onClick: this.loadSubmissions, data: this.props.form.formid}, this.props.form.id_string
+                    'a', {
+                        onClick: this.loadSubmissions,
+                        'data-formid': this.props.form.formid,
+                        'data-title': this.props.form.title
+                    }, this.props.form.title
                 )
             )
         );
@@ -132,16 +139,61 @@ var DataList = React.createClass({
     }
 });
 
+var OSMMap = React.createClass({
+    componentDidMount: function() {
+        L.mapbox.accessToken = 'pk.eyJ1Ijoib25hIiwiYSI6IlVYbkdyclkifQ.0Bz-QOOXZZK01dq4MuMImQ';
+        var map = this.map = L.mapbox.map(
+            this.getDOMNode(),
+            'examples.map-i875kd35'
+        );
+
+        // add an OpenStreetMap tile layer
+        // L.tileLayer(
+        //     'http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+        //         attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+        //     }
+        // ).addTo(map);
+
+        var layer = new L.OSM.DataLayer(this.props.xml).addTo(map);
+        map.fitBounds(layer.getBounds());
+        console.log(this.props.xml);
+        console.log(this.getDOMNode());
+    },
+    componentWillUnmount: function() {
+        this.map = null;
+    },
+    render: function(){
+        return (
+            React.createElement('div', {className: 'map'})
+        );
+    }
+});
+
 var OnaForms = React.createClass({
     getInitialState: function() {
         return {
             ona_user: this.props.ona_user,
             forms: [],
             formid: null,
-            submissions: []
+            submissions: [],
+            osm: null
         };
     },
-    loadSubmissions: function(formid) {
+    loadOSM: function(formid) {
+        $.ajax({
+            url: "http://localhost/api/v1/data/" + formid + ".osm",
+            dataType: "xml",
+            headers: {'Authorization': 'Token ' + this.state.ona_user.api_token},
+            success: function(xml) {
+                this.props.loadOSMMap(xml);
+            }.bind(this),
+            error: function(data) {
+                console.log(data);
+            }
+        });
+    },
+    loadSubmissions: function(formid, title) {
+        this.loadOSM(formid);
         $.ajax({
             url: "http://localhost/api/v1/data/" + formid + ".json",
             dataType: "json",
@@ -149,6 +201,7 @@ var OnaForms = React.createClass({
             success: function(data) {
                 this.setState({
                     formid: formid,
+                    title: title,
                     submissions: data});
             }.bind(this),
             error: function(data) {
@@ -172,9 +225,14 @@ var OnaForms = React.createClass({
     render: function(){
         return (
             this.state.submissions.length > 0 && this.state.formid !== null ?
-                React.createElement(DataList, {data: this.state.submissions}): React.createElement(
-            FormList, {data: this.state.forms, loadSubmissions: this.loadSubmissions}
-        ));
+                React.createElement(
+                    'div', null,
+                    React.createElement('h2', null, this.state.title),
+                    React.createElement(DataList, {data: this.state.submissions})
+                ): React.createElement(
+                    FormList, {data: this.state.forms, loadSubmissions: this.loadSubmissions}
+                )
+        );
     }
 });
 
@@ -221,7 +279,10 @@ var OpenStreetMapAuth = React.createClass({
 
 var MainApp = React.createClass({
     getInitialState: function(){
-        return {ona_user: store.enabled ? store.get('ona_user', null): null};
+        return {
+            ona_user: store.enabled ? store.get('ona_user', null): null,
+            osm: null
+        };
     },
     setOnaUser: function(user) {
         this.setState({ona_user: user});
@@ -229,6 +290,9 @@ var MainApp = React.createClass({
         if(store.enabled){
             store.set('ona_user', user);
         }
+    },
+    loadOSMMap: function(xml) {
+        this.setState({osm: xml});
     },
     render: function(){
         return (
@@ -258,7 +322,15 @@ var MainApp = React.createClass({
                     'div', {className: "row"},
                     React.createElement(
                         "div", {className: "col-sm-3"},
-                        this.state.ona_user !== null ? React.createElement(OnaForms, {ona_user: this.state.ona_user}): null
+                        this.state.ona_user !== null ? React.createElement(
+                            OnaForms, {
+                                ona_user: this.state.ona_user,
+                                loadOSMMap: this.loadOSMMap
+                            }): null
+                    ),
+                    React.createElement(
+                        "div", {className: "col-sm-9"},
+                        this.state.osm !== null ? React.createElement(OSMMap, {xml: this.state.osm}): null
                     )
                 )
             )
