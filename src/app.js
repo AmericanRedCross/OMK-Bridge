@@ -296,7 +296,7 @@ var MainApp = React.createClass({
         return (
             React.createElement(
                 "div", {className: "main-container"},
-                React.createElement("h1", null, "Ona Osm Integration"),
+                React.createElement("h1", null, "OMK Push"),
                 React.createElement(
                     'div', {className: "row"},
                     React.createElement(
