@@ -149,15 +149,13 @@ var OSMMap = React.createClass({displayName: "OSMMap",
 
         // add an OpenStreetMap tile layer
         // L.tileLayer(
-        //     'http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
-        //         attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+        //     'https://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+        //         attribution: '&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
         //     }
         // ).addTo(map);
 
         var layer = new L.OSM.DataLayer(this.props.xml).addTo(map);
         map.fitBounds(layer.getBounds());
-        console.log(this.props.xml);
-        console.log(this.getDOMNode());
     },
     componentWillUnmount: function() {
         this.map = null;
@@ -181,7 +179,7 @@ var OnaForms = React.createClass({displayName: "OnaForms",
     },
     loadOSM: function(formid) {
         $.ajax({
-            url: "http://localhost/api/v1/data/" + formid + ".osm",
+            url: "https://stage.ona.io/api/v1/data/" + formid + ".osm",
             dataType: "xml",
             headers: {'Authorization': 'Token ' + this.state.ona_user.api_token},
             success: function(xml) {
@@ -195,7 +193,7 @@ var OnaForms = React.createClass({displayName: "OnaForms",
     loadSubmissions: function(formid, title) {
         this.loadOSM(formid);
         $.ajax({
-            url: "http://localhost/api/v1/data/" + formid + ".json",
+            url: "https://stage.ona.io/api/v1/data/" + formid + ".json",
             dataType: "json",
             headers: {'Authorization': 'Token ' + this.state.ona_user.api_token},
             success: function(data) {
@@ -211,7 +209,7 @@ var OnaForms = React.createClass({displayName: "OnaForms",
     },
     componentDidMount: function() {
         $.ajax({
-            url: "http://localhost/api/v1/forms.json?instances_with_osm=True",
+            url: "https://stage.ona.io/api/v1/forms.json?instances_with_osm=True",
             dataType: "json",
             headers: {'Authorization': 'Token ' + this.state.ona_user.api_token},
             success: function(data) {
@@ -344,6 +342,6 @@ if (window.location.href.search('oauth_token') !== -1){
 }
 
 React.render(
-    React.createElement(MainApp, {onaLoginURL: 'http://localhost/api/v1/user.json'}),
+    React.createElement(MainApp, {onaLoginURL: 'https://stage.ona.io/api/v1/user.json'}),
     document.getElementById("main")
 );
