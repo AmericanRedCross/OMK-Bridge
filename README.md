@@ -1,6 +1,6 @@
 # OMK Push
 
-Grab OSM data from an OMK/ODK compliant service (Currently Ona), preview and submit into OSM.
+Grab OSM data from an OMK/ODK compliant server (Currently Ona), preview and submit into OSM.
 
 ## Install, Build, Run
 
