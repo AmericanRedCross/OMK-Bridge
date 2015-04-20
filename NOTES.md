@@ -1,6 +1,6 @@
-# OSM ONA integration
+# OMK Push
 
-Pull osm files collected through [Ona](ona.io) to [OpenStreetMap](https://www.openstreetmap.org).
+Pull osm files collected through [Ona](ona.io) and push to [OpenStreetMap](https://www.openstreetmap.org).
 
 ## Plan of action
 
