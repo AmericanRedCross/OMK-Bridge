@@ -1,4 +1,4 @@
-/* global React, $, console, DigestAuthRequest,osmAuth */
+/* global React, $, console, DigestAuthRequest, osmAuth, store */
 var OnaAuthForm = React.createClass({
     handleSubmit: function(e) {
         e.preventDefault();
@@ -12,12 +12,12 @@ var OnaAuthForm = React.createClass({
     },
     render: function() {
         return (
-            <form className="loginForm" onSubmit={this.handleSubmit}>
-                <input type="text" placeholder="Ona Username" autofocus="autofocus" ref="username" />
-                <input type="password" placeholder="Ona Password" autoComplete="off" ref="password" />
-                <input type="submit" value="Login into Ona" />
-                {this.props.loginError ? <div className="error">Wrong Username or Password!</div> : null}
-            </form>
+            React.createElement("form", {className: "form-signin", onSubmit: this.handleSubmit},
+                React.createElement("input", {type: "text", className: "form-control", placeholder: "Ona Username", autofocus: "autofocus", ref: "username"}),
+                React.createElement("input", {type: "password", className: "form-control", placeholder: "Ona Password", autoComplete: "off", ref: "password"}),
+                this.props.loginError ? React.createElement("p", {className: "bg-danger text-warning"}, "Wrong Username or Password!") : null,
+                React.createElement("button", {type: "submit", className: "btn btn-lg btn-primary btn-block"}, "Login into Ona")
+            )
         );
     }
 });
@@ -25,7 +25,9 @@ var OnaAuthForm = React.createClass({
 // Ona Authentication Component
 var OnaAuth = React.createClass({
     getInitialState: function() {
-        return {isLoggedIn: false, data: null, loginError: false};
+        var isLoggedIn = this.props.ona_user !== null ? true: false;
+
+        return {isLoggedIn: isLoggedIn, data: this.props.ona_user, loginError: false};
     },
     handleLogin: function(username, password) {
         var req = new DigestAuthRequest('GET', this.props.url, username, password);
@@ -50,13 +52,19 @@ var OnaAuth = React.createClass({
 });
 var FormRow = React.createClass({
     loadSubmissions: function(e) {
+        e.preventDefault();
         this.props.onFormSelected(e.target.getAttribute('data'));
     },
     render: function() {
         return React.createElement(
             'tr', null,
             React.createElement('td', null),
-            React.createElement('td', {onClick: this.loadSubmissions, data: this.props.form.formid}, this.props.form.id_string));
+            React.createElement(
+                'td', null, React.createElement(
+                    'a', {onClick: this.loadSubmissions, data: this.props.form.formid}, this.props.form.id_string
+                )
+            )
+        );
     }
 });
 
@@ -74,9 +82,38 @@ var FormList = React.createClass({
     }
 });
 
+var DataRow = React.createClass({
+    render: function() {
+        return (
+            React.createElement(
+                'tr', null, React.createElement(
+                    'td', null, React.createElement(
+                        'input', {type: "checkbox", value: "{ this.props.submission._id }"}
+                    )
+                ),
+                React.createElement('td', null, this.props.submission._id)
+            )
+        );
+    }
+});
+
 var DataList = React.createClass({
     render: function() {
-        return (React.createElement('div', null, "Loaded " + this.props.data.length + " submissions."));
+        var rows = this.props.data.map(function(submission){
+            return React.createElement(
+                DataRow, {submission: submission, key: submission._id}
+            );
+        });
+        return (
+            React.createElement(
+                "table", null, React.createElement(
+                    "tr", null,
+                    React.createElement("th", null, " "),
+                    React.createElement("th", null, "#")
+                ),
+                rows
+            )
+        );
     }
 });
 
@@ -159,19 +196,24 @@ var OpenStreetMapAuth = React.createClass({
     render: function() {
         return (
             this.state.auth.authenticated() === false ?
-                React.createElement('button', {onClick: this.handleOSMLogin}, "Login to OpenStreetMap.org")
+                React.createElement('button', {className: "btn btn-lg btn-success", onClick: this.handleOSMLogin},
+                    "Login to OpenStreetMap.org")
                     :
-                React.createElement('button', {onClick: this.handleOSMLogout}, "Unlink OpenStreetMap.org")
+                React.createElement('button', {className: "btn btn-lg btn-warning", onClick: this.handleOSMLogout}, "Unlink OpenStreetMap.org")
         );
     }
 });
 
 var MainApp = React.createClass({
     getInitialState: function(){
-        return {ona_user: null};
+        return {ona_user: store.enabled ? store.get('ona_user', null): null};
     },
     setOnaUser: function(user) {
         this.setState({ona_user: user});
+
+        if(store.enabled){
+            store.set('ona_user', user);
+        }
     },
     render: function(){
         return (
@@ -180,13 +222,14 @@ var MainApp = React.createClass({
                 React.createElement("h1", null, "Ona Osm Integration"),
                 React.createElement(OnaAuth, {
                     url: this.props.onaLoginURL,
-                    onLoginSuccess: this.setOnaUser
+                    onLoginSuccess: this.setOnaUser,
+                    ona_user: this.state.ona_user
                 }),
-                React.createElement(OpenStreetMapAuth, {
+                this.state.ona_user !== null ? React.createElement(OpenStreetMapAuth, {
                     oauthConsumerKey: 'OTlOD6gfLnzP0oot7uA0w6GZdBOc5gQXJ0r7cdG4',
                     oauthSecret: 'cHPXxC3JCa9PazwVA5XOQkmh4jQcIdrhFePBmbSJ',
                     landing: '/'
-                }),
+                }): null,
                 this.state.ona_user !== null ? React.createElement(OnaForms, {ona_user: this.state.ona_user}): null
             )
         );
