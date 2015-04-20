@@ -1,4 +1,8 @@
-# Install, Build, Run
+# OMK Push
+
+Grab OSM data from an OMK/ODK compliant service (Currently Ona), preview and submit into OSM.
+
+## Install, Build, Run
 
     npm -g install react-tools
     npm install
