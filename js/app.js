@@ -193,7 +193,7 @@ var OnaForms = React.createClass({displayName: "OnaForms",
     loadSubmissions: function(formid, title) {
         this.loadOSM(formid);
         $.ajax({
-            url: "https://stage.ona.io/api/v1/data/" + formid + ".json",
+            url: "https://stage.ona.io/api/v1/data/" + formid + '.json?fields=["_id"]',
             dataType: "json",
             headers: {'Authorization': 'Token ' + this.state.ona_user.api_token},
             success: function(data) {
