@@ -58,7 +58,6 @@ var FormRow = React.createClass({
     render: function() {
         return React.createElement(
             'tr', null,
-            React.createElement('td', null),
             React.createElement(
                 'td', null, React.createElement(
                     'a', {onClick: this.loadSubmissions, data: this.props.form.formid}, this.props.form.id_string
@@ -75,9 +74,15 @@ var FormList = React.createClass({
                 FormRow, {onFormSelected: this.props.loadSubmissions, form: form, key: form.formid}
             );
         }.bind(this));
-        return (React.createElement(
-            'table', {className: 'form-list'},
-            formNodes
+        return (
+            React.createElement(
+                'table', {className: 'table form-list'}, React.createElement(
+                    "thead", null, React.createElement(
+                        "tr", null,
+                        React.createElement("th", null, "Form Name")
+                    )
+                ),
+                React.createElement('tbody', null, formNodes)
         ));
     }
 });
@@ -106,14 +111,15 @@ var DataList = React.createClass({
         });
         return (
             React.createElement(
-                "table", null, React.createElement(
-                    "tr", null,
-                    React.createElement("th", null, " "),
-                    React.createElement("th", null, "#")
+                'table', {className: 'table data-list'}, React.createElement(
+                    "thead", null, React.createElement(
+                        "tr", null,
+                        React.createElement("th", {width: "20px"}, " "),
+                        React.createElement("th", null, "Data Id")
+                    )
                 ),
-                rows
-            )
-        );
+                React.createElement('tbody', null, rows)
+        ));
     }
 });
 

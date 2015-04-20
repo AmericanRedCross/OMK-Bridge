@@ -44,3 +44,6 @@ h1 {
     padding: 10px;
     margin-bottom: 5px;
 }
+table.form-list, table.data-list {
+    margin: 4px;
+}
