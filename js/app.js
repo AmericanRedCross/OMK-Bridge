@@ -16,7 +16,7 @@ var OnaAuthForm = React.createClass({displayName: "OnaAuthForm",
                 React.createElement("input", {type: "text", className: "form-control", placeholder: "Ona Username", autofocus: "autofocus", ref: "username"}),
                 React.createElement("input", {type: "password", className: "form-control", placeholder: "Ona Password", autoComplete: "off", ref: "password"}),
                 this.props.loginError ? React.createElement("p", {className: "bg-danger text-warning"}, "Wrong Username or Password!") : null,
-                React.createElement("button", {type: "submit", className: "btn btn-lg btn-primary btn-block"}, "Login into Ona")
+                React.createElement("button", {type: "submit", className: "btn btn-sm btn-primary btn-block"}, "Login into Ona")
             )
         );
     }
@@ -40,12 +40,21 @@ var OnaAuth = React.createClass({displayName: "OnaAuth",
             }.bind(this)
         );
     },
+    handleLogout: function(e) {
+        if(store.enabled) {
+            store.clear();
+            window.location.reload();
+        }
+    },
     render: function() {
         var isLoggedIn = this.state.isLoggedIn;
         var content = React.createElement(OnaAuthForm,
                                           {handleLogin: this.handleLogin, loginError: this.state.loginError});
         if(isLoggedIn) {
-            content = React.createElement('div', null, "User: " + this.state.data.name);
+            content = React.createElement(
+                'span', null, "User: " + this.state.data.name + "  ",
+                React.createElement('button', {className: "btn btn-sm btn-default", onClick: this.handleLogout}, "Logout")
+            );
         }
         return (content);
     }
@@ -202,10 +211,10 @@ var OpenStreetMapAuth = React.createClass({displayName: "OpenStreetMapAuth",
     render: function() {
         return (
             this.state.auth.authenticated() === false ?
-                React.createElement('button', {className: "btn btn-lg btn-success", onClick: this.handleOSMLogin},
+                React.createElement('button', {className: "btn btn-sm btn-success", onClick: this.handleOSMLogin},
                     "Login to OpenStreetMap.org")
                     :
-                React.createElement('button', {className: "btn btn-lg btn-warning", onClick: this.handleOSMLogout}, "Unlink OpenStreetMap.org")
+                React.createElement('button', {className: "btn btn-sm btn-warning", onClick: this.handleOSMLogout}, "Unlink OpenStreetMap.org")
         );
     }
 });
@@ -226,17 +235,32 @@ var MainApp = React.createClass({displayName: "MainApp",
             React.createElement(
                 "div", {className: "main-container"},
                 React.createElement("h1", null, "Ona Osm Integration"),
-                React.createElement(OnaAuth, {
-                    url: this.props.onaLoginURL,
-                    onLoginSuccess: this.setOnaUser,
-                    ona_user: this.state.ona_user
-                }),
-                this.state.ona_user !== null ? React.createElement(OpenStreetMapAuth, {
-                    oauthConsumerKey: 'OTlOD6gfLnzP0oot7uA0w6GZdBOc5gQXJ0r7cdG4',
-                    oauthSecret: 'cHPXxC3JCa9PazwVA5XOQkmh4jQcIdrhFePBmbSJ',
-                    landing: '/'
-                }): null,
-                this.state.ona_user !== null ? React.createElement(OnaForms, {ona_user: this.state.ona_user}): null
+                React.createElement(
+                    'div', {className: "row"},
+                    React.createElement(
+                        "div", {className: "col-sm-8"},
+                        React.createElement(OnaAuth, {
+                            url: this.props.onaLoginURL,
+                            onLoginSuccess: this.setOnaUser,
+                            ona_user: this.state.ona_user
+                        })
+                    ),
+                    React.createElement(
+                        "div", {className: "col-sm-4"},
+                        this.state.ona_user !== null ? React.createElement(OpenStreetMapAuth, {
+                            oauthConsumerKey: 'OTlOD6gfLnzP0oot7uA0w6GZdBOc5gQXJ0r7cdG4',
+                            oauthSecret: 'cHPXxC3JCa9PazwVA5XOQkmh4jQcIdrhFePBmbSJ',
+                            landing: '/'
+                        }): null
+                    )
+                ),
+                React.createElement(
+                    'div', {className: "row"},
+                    React.createElement(
+                        "div", {className: "col-sm-3"},
+                        this.state.ona_user !== null ? React.createElement(OnaForms, {ona_user: this.state.ona_user}): null
+                    )
+                )
             )
         );
     }
