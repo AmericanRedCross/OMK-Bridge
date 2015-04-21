@@ -1,4 +1,4 @@
-/* global React, $, console, DigestAuthRequest, osmAuth, store, L */
+/* global React, $, console, DigestAuthRequest, osmAuth, store, L, JXON */
 var OnaAuthForm = React.createClass({displayName: "OnaAuthForm",
     handleSubmit: function(e) {
         e.preventDefault();
@@ -78,6 +78,9 @@ var FormRow = React.createClass({displayName: "FormRow",
                         'data-title': this.props.form.title
                     }, this.props.form.title
                 )
+            ),
+            React.createElement(
+                'td', null, this.props.form.num_of_submissions
             )
         );
     }
@@ -95,7 +98,8 @@ var FormList = React.createClass({displayName: "FormList",
                 'table', {className: 'table form-list'}, React.createElement(
                     "thead", null, React.createElement(
                         "tr", null,
-                        React.createElement("th", null, "Form Name")
+                        React.createElement("th", null, "Form Name"),
+                        React.createElement("th", null, "# of submissions")
                     )
                 ),
                 React.createElement('tbody', null, formNodes)
@@ -149,8 +153,8 @@ var OSMMap = React.createClass({displayName: "OSMMap",
 
         // add an OpenStreetMap tile layer
         // L.tileLayer(
-        //     'https://{s}.tile.osm.org/{z}/{x}/{y}.png', {
-        //         attribution: '&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
+        //     'http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+        //         attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
         //     }
         // ).addTo(map);
 
@@ -177,23 +181,53 @@ var OnaForms = React.createClass({displayName: "OnaForms",
             osm: null
         };
     },
+    getOSMWay: function(id, callback){
+    },
+    submitToOSM: function(e) {
+        e.preventDefault();
+        this.state.changes.map(function(change) {
+            var id = change['@id'];
+            this.getOSMWay(id, function (way) {
+                console.log(way);
+            });
+        });
+        console.log(this.state.changes);
+    },
     loadOSM: function(formid) {
         $.ajax({
-            url: "https://stage.ona.io/api/v1/data/" + formid + ".osm",
+            url: "http://localhost/api/v1/data/" + formid + ".osm",
             dataType: "xml",
             headers: {'Authorization': 'Token ' + this.state.ona_user.api_token},
             success: function(xml) {
                 this.props.loadOSMMap(xml);
+                // Pull in all changes
+                // for each way or node that has @action modify
+                // get latest way or node by id
+                // apply changes
+                // generate osmChange xml
+                var osmJXON = JXON.build(xml);
+
+                this.setState({osm: xml, osmJXON: osmJXON});
+
+                if (Array.isArray(osmJXON.osm.way)) {
+                    var changes = [];
+                    osmJXON.osm.way.forEach(function(obj) {
+                        if(obj["@action"] === "modify") {
+                            changes.push(obj);
+                        }
+                    });
+                    this.setState({changes: changes});
+                }
             }.bind(this),
-            error: function(data) {
-                console.log(data);
+            error: function(err) {
+                console.log(err);
             }
         });
     },
     loadSubmissions: function(formid, title) {
         this.loadOSM(formid);
         $.ajax({
-            url: "https://stage.ona.io/api/v1/data/" + formid + '.json?fields=["_id"]',
+            url: "http://localhost/api/v1/data/" + formid + ".json",
             dataType: "json",
             headers: {'Authorization': 'Token ' + this.state.ona_user.api_token},
             success: function(data) {
@@ -209,7 +243,7 @@ var OnaForms = React.createClass({displayName: "OnaForms",
     },
     componentDidMount: function() {
         $.ajax({
-            url: "https://stage.ona.io/api/v1/forms.json?instances_with_osm=True",
+            url: "http://localhost/api/v1/forms.json?instances_with_osm=True",
             dataType: "json",
             headers: {'Authorization': 'Token ' + this.state.ona_user.api_token},
             success: function(data) {
@@ -226,7 +260,11 @@ var OnaForms = React.createClass({displayName: "OnaForms",
                 React.createElement(
                     'div', null,
                     React.createElement('h2', null, this.state.title),
-                    React.createElement(DataList, {data: this.state.submissions})
+                    React.createElement(
+                        'form', {onSubmit: this.submitToOSM},
+                        React.createElement("button", {type: "submit", className: "btn btn-sm btn-primary btn-block"}, "Submit to OpenStreetMap.org"),
+                        React.createElement(DataList, {data: this.state.submissions})
+                    )
                 ): React.createElement(
                     FormList, {data: this.state.forms, loadSubmissions: this.loadSubmissions}
                 )
@@ -245,6 +283,11 @@ var OpenStreetMapAuth = React.createClass({displayName: "OpenStreetMapAuth",
 
         return {auth: auth};
     },
+    componentDidMount: function() {
+        if (this.state.auth.authenticated()) {
+            this.props.osmLoginSuccess(this.state.auth);
+        }
+    },
     handleOSMLogin: function() {
         var auth = this.state.auth;
 
@@ -256,6 +299,7 @@ var OpenStreetMapAuth = React.createClass({displayName: "OpenStreetMapAuth",
                 console.log(err);
             } else {
                 this.setState({details: details});
+                this.props.osmLoginSuccess(this.state.auth);
             }
         }.bind(this));
     },
@@ -279,7 +323,8 @@ var MainApp = React.createClass({displayName: "MainApp",
     getInitialState: function(){
         return {
             ona_user: store.enabled ? store.get('ona_user', null): null,
-            osm: null
+            osm: null,
+            osmauth: null
         };
     },
     setOnaUser: function(user) {
@@ -289,6 +334,9 @@ var MainApp = React.createClass({displayName: "MainApp",
             store.set('ona_user', user);
         }
     },
+    setOSMAuth: function(auth) {
+        this.setState({osmauth: auth});
+    },
     loadOSMMap: function(xml) {
         this.setState({osm: xml});
     },
@@ -296,7 +344,7 @@ var MainApp = React.createClass({displayName: "MainApp",
         return (
             React.createElement(
                 "div", {className: "main-container"},
-                React.createElement("h1", null, "Ona Osm Integration"),
+                React.createElement("h1", null, "OMK Push"),
                 React.createElement(
                     'div', {className: "row"},
                     React.createElement(
@@ -312,17 +360,19 @@ var MainApp = React.createClass({displayName: "MainApp",
                         this.state.ona_user !== null ? React.createElement(OpenStreetMapAuth, {
                             oauthConsumerKey: 'OTlOD6gfLnzP0oot7uA0w6GZdBOc5gQXJ0r7cdG4',
                             oauthSecret: 'cHPXxC3JCa9PazwVA5XOQkmh4jQcIdrhFePBmbSJ',
-                            landing: '/'
+                            landing: '/',
+                            osmLoginSuccess: this.setOSMAuth
                         }): null
                     )
                 ),
-                React.createElement(
+                this.state.osmauth !== null ? React.createElement(
                     'div', {className: "row"},
                     React.createElement(
                         "div", {className: "col-sm-3"},
                         this.state.ona_user !== null ? React.createElement(
                             OnaForms, {
                                 ona_user: this.state.ona_user,
+                                osmauth: this.state.osmauth,
                                 loadOSMMap: this.loadOSMMap
                             }): null
                     ),
@@ -330,7 +380,7 @@ var MainApp = React.createClass({displayName: "MainApp",
                         "div", {className: "col-sm-9"},
                         this.state.osm !== null ? React.createElement(OSMMap, {xml: this.state.osm}): null
                     )
-                )
+                ): null
             )
         );
     }
@@ -342,6 +392,6 @@ if (window.location.href.search('oauth_token') !== -1){
 }
 
 React.render(
-    React.createElement(MainApp, {onaLoginURL: 'https://stage.ona.io/api/v1/user.json'}),
+    React.createElement(MainApp, {onaLoginURL: 'http://localhost/api/v1/user.json'}),
     document.getElementById("main")
 );
