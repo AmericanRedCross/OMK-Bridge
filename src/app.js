@@ -1,4 +1,7 @@
-/* global React, $, console, DigestAuthRequest, osmAuth, store, L, JXON */
+/* global React, $, console, DigestAuthRequest, osmAuth, store, L, JXON, FixedDataTable */
+var Table = FixedDataTable.Table;
+var Column = FixedDataTable.Column;
+
 var OnaAuthForm = React.createClass({
     handleSubmit: function(e) {
         e.preventDefault();
@@ -112,9 +115,8 @@ var DataRow = React.createClass({
         return (
             React.createElement(
                 'tr', null, React.createElement(
-                    'td', null, React.createElement(
-                        'input', {type: "checkbox", value: "{ this.props.submission._id }"}
-                    )
+                    'td', null, " "
+                    // React.createElement('input', {type: "checkbox", value: "{ this.props.submission._id }"})
                 ),
                 React.createElement('td', null, this.props.submission._id)
             )
@@ -330,6 +332,14 @@ var OnaForms = React.createClass({
             }
         });
     },
+    rowGetter: function(rowIndex) {
+        if(this.state.submissions.length > 0) {
+            return this.state.submissions[rowIndex];
+        }
+    },
+    getSize: function(){
+        return this.state.submissions.length;
+    },
     render: function(){
         return (
             this.state.submissions.length > 0 && this.state.formid !== null ?
@@ -339,7 +349,15 @@ var OnaForms = React.createClass({
                     React.createElement(
                         'form', {onSubmit: this.submitToOSM},
                         React.createElement("button", {type: "submit", className: "btn btn-sm btn-primary btn-block"}, "Submit to OpenStreetMap.org"),
-                        React.createElement(DataList, {data: this.state.submissions})
+                        // React.createElement(DataList, {data: this.state.submissions})
+                        React.createElement(
+                            'div', {className: 'data-list'}, React.createElement(
+                                Table, {width: 200, height: 465, rowGetter: this.rowGetter, rowsCount: this.getSize(), rowHeight: 30,
+                                    headerHeight: 30
+                                },
+                                React.createElement(Column, {dataKey: '_id', label: 'Data Id', width: 100})
+                            )
+                        )
                     )
                 ): React.createElement(
                     FormList, {data: this.state.forms, loadSubmissions: this.loadSubmissions}
