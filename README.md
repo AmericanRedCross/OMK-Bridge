@@ -1,4 +1,4 @@
-## OMK Push
+## OMK Bridge
 
 Grab OSM data from an OMK/ODK compliant server (Currently Ona), preview and submit into OSM.
 
