@@ -182,15 +182,25 @@ var OnaForms = React.createClass({displayName: "OnaForms",
         };
     },
     getOSMWay: function(id, callback){
+        var auth = this.props.osmauth;
+        var params = {
+            method: 'GET',
+            path: '/api/0.6/way/' + id
+        };
+        auth.xhr(params, callback);
     },
     submitToOSM: function(e) {
         e.preventDefault();
         this.state.changes.map(function(change) {
             var id = change['@id'];
-            this.getOSMWay(id, function (way) {
-                console.log(way);
+            this.getOSMWay(id, function (err, way) {
+                if(err) {
+                    console.log(err);
+                } else {
+                    console.log(way);
+                }
             });
-        });
+        }.bind(this));
         console.log(this.state.changes);
     },
     loadOSM: function(formid) {
