@@ -191,13 +191,79 @@ var OnaForms = React.createClass({displayName: "OnaForms",
     },
     submitToOSM: function(e) {
         e.preventDefault();
+        var auth = this.props.osmauth;
+        console.log("User Auth: ", auth.authenticated());
         this.state.changes.map(function(change) {
             var id = change['@id'];
-            this.getOSMWay(id, function (err, way) {
+            this.getOSMWay(id, function (err, xml) {
                 if(err) {
                     console.log(err);
                 } else {
-                    console.log(way);
+                    var way = JXON.build(xml).osm.way;
+                    change['@version'] = way['@version'];
+                    //     osm: {
+                    //         changeset: {
+                    //             way: change
+                    //         }
+                    //     }
+                    // };
+                    var changeset = {
+                        osm: {
+                            changeset: {
+                                tag: {
+                                    '@k': 'comment',
+                                    '@v': "OMK Push"
+                                }
+                            }
+                        }
+                    };
+                    // console.log(way);
+                    // console.log(osmChange);
+                    // create a changeset
+                    auth.xhr({
+                        method: 'PUT',
+                        path: '/api/0.6/changeset/create',
+                        options: { header: { 'Content-Type': 'text/xml' } },
+                        content: JXON.stringify(changeset)
+                    }, function(changesetErr, changeset_id) {
+                        if(changesetErr) {
+                            console.log(changesetErr);
+                            return;
+                        }
+                        console.log(changeset_id);
+                        // with changeset_id, upload osmChange
+                        change['@changeset'] = changeset_id;
+                        var osmChange = {
+                            osmChange: {
+                                modify: {
+                                    way: change
+                                }
+                            }
+                        };
+                        auth.xhr({
+                            method: 'POST',
+                            path: '/api/0.6/changeset/' + changeset_id + '/upload',
+                            options: { header: { 'Content-Type': 'text/xml' } },
+                            content: JXON.stringify(osmChange)
+                        }, function(osmChangeErr, diffResult) {
+                            if(osmChangeErr) {
+                                console.log(changesetErr);
+                                return;
+                            }
+                            console.log(diffResult);
+                            // close changeset
+                            auth.xhr({
+                                method: 'PUT',
+                                path: '/api/0.6/changeset/' + changeset_id + '/close'
+                            }, function(closeErr, closeResult) {
+                                if(closeErr) {
+                                    console.log(closeErr);
+                                    return;
+                                }
+                                console.log(closeResult);
+                            });
+                        });
+                    });
                 }
             });
         }.bind(this));
@@ -290,7 +356,6 @@ var OpenStreetMapAuth = React.createClass({displayName: "OpenStreetMapAuth",
             auto: true,
             landing: this.props.landing
         });
-
         return {auth: auth};
     },
     componentDidMount: function() {
@@ -317,6 +382,7 @@ var OpenStreetMapAuth = React.createClass({displayName: "OpenStreetMapAuth",
         var auth = this.state.auth;
         auth.logout();
         this.setState({auth: auth});
+        this.props.osmLoginSuccess(null);
     },
     render: function() {
         return (
