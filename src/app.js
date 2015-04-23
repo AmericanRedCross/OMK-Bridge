@@ -172,6 +172,12 @@ var getWayByID = function(osm_id, osmJXON) {
     });
 };
 
+var getOSMFields = function(data) {
+    return data.filter(function(question){
+        return question.type === 'osm';
+    });
+};
+
 var OnaForms = React.createClass({
     getInitialState: function() {
         return {
@@ -206,23 +212,21 @@ var OnaForms = React.createClass({
         }
     },
     loadFormJson: function(formid) {
-        if(formid !== null || formid !== undefined) {
-            $.ajax({
-                url: 'http://localhost/api/v1/forms/' + formid + '/form.json',
-                dataType: 'json',
-                headers: {'Authorization': 'Token ' + this.state.ona_user.api_token},
-                success: function(data) {
-                    var osm_fields = data.children.filter(function(question){
-                        return question.type === 'osm';
-                    });
-                    this.setState({formjson: data, osm_fields: osm_fields});
-                    this.combinedData();
-                }.bind(this),
-                error: function(err) {
-                    console.log(err);
-                }
-            });
-        }
+        return $.ajax({
+            url: 'http://localhost/api/v1/forms/' + formid + '/form.json',
+            dataType: 'json',
+            headers: {'Authorization': 'Token ' + this.state.ona_user.api_token}
+            // success: function(data) {
+            //     var osm_fields = data.children.filter(function(question){
+            //         return question.type === 'osm';
+            //     });
+            //     this.setState({formjson: data, osm_fields: osm_fields});
+            //     this.combinedData();
+            // }.bind(this),
+            // error: function(err) {
+            //     console.log(err);
+            // }
+        });
     },
     getOSMWay: function(id, callback){
         var auth = this.props.osmauth;
@@ -305,55 +309,69 @@ var OnaForms = React.createClass({
         console.log(this.state.changes);
     },
     loadOSM: function(formid) {
-        $.ajax({
+        return $.ajax({
             url: "http://localhost/api/v1/data/" + formid + ".osm",
             dataType: "xml",
-            headers: {'Authorization': 'Token ' + this.state.ona_user.api_token},
-            success: function(xml) {
-                this.props.loadOSMMap(xml);
-                // Pull in all changes
-                // for each way or node that has @action modify
-                // get latest way or node by id
-                // apply changes
-                // generate osmChange xml
-                var osmJXON = JXON.build(xml);
+            headers: {'Authorization': 'Token ' + this.state.ona_user.api_token}
+            // success: function(xml) {
+            //     this.props.loadOSMMap(xml);
+            //     // Pull in all changes
+            //     // for each way or node that has @action modify
+            //     // get latest way or node by id
+            //     // apply changes
+            //     // generate osmChange xml
+            //     var osmJXON = JXON.build(xml);
 
-                this.setState({osm: xml, osmJXON: osmJXON});
+            //     this.setState({osm: xml, osmJXON: osmJXON});
 
-                if (Array.isArray(osmJXON.osm.way)) {
-                    var changes = [];
-                    osmJXON.osm.way.forEach(function(obj) {
-                        if(obj["@action"] === "modify") {
-                            changes.push(obj);
-                        }
-                    });
-                    this.setState({changes: changes});
-                }
-                this.combinedData();
-            }.bind(this),
-            error: function(err) {
-                console.log(err);
-            }
+            //     if (Array.isArray(osmJXON.osm.way)) {
+            //         var changes = [];
+            //         osmJXON.osm.way.forEach(function(obj) {
+            //             if(obj["@action"] === "modify") {
+            //                 changes.push(obj);
+            //             }
+            //         });
+            //         this.setState({changes: changes});
+            //     }
+            //     this.combinedData();
+            // }.bind(this),
+            // error: function(err) {
+            //     console.log(err);
+            // }
         });
     },
     loadSubmissions: function(formid, title) {
-        this.loadOSM(formid);
-        this.loadFormJson(formid);
-        $.ajax({
+        var osmRequest = this.loadOSM(formid);
+        var formJsonRequest = this.loadFormJson(formid);
+        var dataRequest = $.ajax({
             url: "http://localhost/api/v1/data/" + formid + '.json',
             dataType: "json",
-            headers: {'Authorization': 'Token ' + this.state.ona_user.api_token},
-            success: function(data) {
-                this.setState({
-                    formid: formid,
-                    title: title,
-                    submissions: data});
-                this.combinedData();
-            }.bind(this),
-            error: function(data) {
-                console.log(data);
-            }
+            headers: {'Authorization': 'Token ' + this.state.ona_user.api_token}
+            // success: function(data) {
+            //     this.setState({
+            //         formid: formid,
+            //         title: title,
+            //         submissions: data});
+            //     this.combinedData();
+            // }.bind(this),
+            // error: function(data) {
+            //     console.log(data);
+            // }
         });
+        $.when(osmRequest, formJsonRequest, dataRequest).done(
+            function(xmlData, formJsonData, submissionData) {
+                var xml = xmlData[0];
+                var formJson = formJsonData[0];
+                var submissions = submissionData[0];
+                this.props.loadOSMMap(xml);
+
+                var osmJXON = JXON.build(xml);
+
+                this.setState({osm: xml, osmJXON: osmJXON});
+                this.setState({formid: formid, title: title, submissions: submissions});
+                this.setState({formjson: formJson, osm_fields: getOSMFields(formJson.children)});
+            }.bind(this)
+        );
     },
     componentDidMount: function() {
         $.ajax({
