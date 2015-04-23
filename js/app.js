@@ -166,6 +166,12 @@ var OSMMap = React.createClass({displayName: "OSMMap",
     }
 });
 
+var getWayByID = function(osm_id, osmJXON) {
+    return osmJXON.osm.way.filter(function(way) {
+        return way['@id'] === Number.parseInt(osm_id);
+    });
+};
+
 var OnaForms = React.createClass({displayName: "OnaForms",
     getInitialState: function() {
         return {
@@ -177,6 +183,28 @@ var OnaForms = React.createClass({displayName: "OnaForms",
             osm: null
         };
     },
+    combinedData: function() {
+        if(this.state.osm_fields !== undefined && this.state.osmJXON !== undefined && this.state.submissions !== null) {
+            var osmJXON = this.state.osmJXON;
+            var osm_fields = this.state.osm_fields;
+            var new_data = this.state.submissions.map(function(obj) {
+                obj['@osm'] = [];
+                osm_fields.map(function(field){
+                    var filename = obj[field.name];
+                    if (filename !== undefined){
+                        if(filename.startsWith('OSMWay') && filename.endsWith('.osm')) {
+                            var osm_id = filename.replace('OSMWay', '').replace('.osm', '');
+                            obj['@osm'] = getWayByID(osm_id, osmJXON);
+                        }
+                    }
+                });
+
+                return obj;
+            });
+
+            return new_data;
+        }
+    },
     loadFormJson: function(formid) {
         if(formid !== null || formid !== undefined) {
             $.ajax({
@@ -184,7 +212,11 @@ var OnaForms = React.createClass({displayName: "OnaForms",
                 dataType: 'json',
                 headers: {'Authorization': 'Token ' + this.state.ona_user.api_token},
                 success: function(data) {
-                    this.setState({formjson: data});
+                    var osm_fields = data.children.filter(function(question){
+                        return question.type === 'osm';
+                    });
+                    this.setState({formjson: data, osm_fields: osm_fields});
+                    this.combinedData();
                 }.bind(this),
                 error: function(err) {
                     console.log(err);
@@ -297,6 +329,7 @@ var OnaForms = React.createClass({displayName: "OnaForms",
                     });
                     this.setState({changes: changes});
                 }
+                this.combinedData();
             }.bind(this),
             error: function(err) {
                 console.log(err);
@@ -315,6 +348,7 @@ var OnaForms = React.createClass({displayName: "OnaForms",
                     formid: formid,
                     title: title,
                     submissions: data});
+                this.combinedData();
             }.bind(this),
             error: function(data) {
                 console.log(data);
@@ -335,8 +369,9 @@ var OnaForms = React.createClass({displayName: "OnaForms",
         });
     },
     rowGetter: function(rowIndex) {
-        if(this.state.submissions.length > 0) {
-            return this.state.submissions[rowIndex];
+        var data = this.combinedData();
+        if(data.length > 0) {
+            return data[rowIndex];
         }
     },
     getSize: function(){
@@ -344,7 +379,7 @@ var OnaForms = React.createClass({displayName: "OnaForms",
     },
     render: function(){
         return (
-            this.state.submissions.length > 0 && this.state.formid !== null ?
+            this.state.submissions.length > 0 && this.state.formid !== null && this.state.osm !== null && this.state.osm_fields !== undefined?
                 React.createElement(
                     'div', null,
                     React.createElement('h2', null, this.state.title),
