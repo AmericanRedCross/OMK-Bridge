@@ -178,6 +178,26 @@ var getOSMFields = function(data) {
     });
 };
 
+var mergeOsmData = function(osm, data, osm_fields) {
+    var osmJXON = JXON.build(osm);
+    var new_data = data.map(function(obj) {
+        obj['@osm'] = [];
+        osm_fields.map(function(field){
+            var filename = obj[field.name];
+            if (filename !== undefined){
+                if(filename.startsWith('OSMWay') && filename.endsWith('.osm')) {
+                    var osm_id = filename.replace('OSMWay', '').replace('.osm', '');
+                    obj['@osm'] = getWayByID(osm_id, osmJXON);
+                }
+            }
+        });
+
+        return obj;
+    });
+
+    return new_data;
+};
+
 var OnaForms = React.createClass({displayName: "OnaForms",
     getInitialState: function() {
         return {
@@ -188,28 +208,6 @@ var OnaForms = React.createClass({displayName: "OnaForms",
             submissions: [],
             osm: null
         };
-    },
-    combinedData: function() {
-        if(this.state.osm_fields !== undefined && this.state.osmJXON !== undefined && this.state.submissions !== null) {
-            var osmJXON = this.state.osmJXON;
-            var osm_fields = this.state.osm_fields;
-            var new_data = this.state.submissions.map(function(obj) {
-                obj['@osm'] = [];
-                osm_fields.map(function(field){
-                    var filename = obj[field.name];
-                    if (filename !== undefined){
-                        if(filename.startsWith('OSMWay') && filename.endsWith('.osm')) {
-                            var osm_id = filename.replace('OSMWay', '').replace('.osm', '');
-                            obj['@osm'] = getWayByID(osm_id, osmJXON);
-                        }
-                    }
-                });
-
-                return obj;
-            });
-
-            return new_data;
-        }
     },
     loadFormJson: function(formid) {
         return $.ajax({
@@ -362,14 +360,18 @@ var OnaForms = React.createClass({displayName: "OnaForms",
             function(xmlData, formJsonData, submissionData) {
                 var xml = xmlData[0];
                 var formJson = formJsonData[0];
+                var osm_fields = getOSMFields(formJson.children);
                 var submissions = submissionData[0];
                 this.props.loadOSMMap(xml);
 
-                var osmJXON = JXON.build(xml);
-
-                this.setState({osm: xml, osmJXON: osmJXON});
-                this.setState({formid: formid, title: title, submissions: submissions});
-                this.setState({formjson: formJson, osm_fields: getOSMFields(formJson.children)});
+                this.setState({
+                    osm: xml,
+                    osm_fields: osm_fields,
+                    formid: formid,
+                    title: title,
+                    formjson: formJson,
+                    submissions: mergeOsmData(xml, submissions, osm_fields)
+                });
             }.bind(this)
         );
     },
@@ -387,9 +389,8 @@ var OnaForms = React.createClass({displayName: "OnaForms",
         });
     },
     rowGetter: function(rowIndex) {
-        var data = this.combinedData();
-        if(data.length > 0) {
-            return data[rowIndex];
+        if(this.state.submissions.length > 0) {
+            return this.state.submissions[rowIndex];
         }
     },
     getSize: function(){
