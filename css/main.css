@@ -67,3 +67,14 @@ div.map {
     padding: 0.1em 0.3em;
     /* border-top: 1px solid; */
 }
+
+.version, .latest-version{
+    border-right: 1px solid;
+    padding: 0 0.3em;
+}
+.version {
+    color: green;
+}
+.latest-version {
+    color: red;
+}

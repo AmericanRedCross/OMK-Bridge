@@ -112,14 +112,30 @@ var FormList = React.createClass({
 
 var DataRow = React.createClass({
     getInitialState: function() {
-        return {show: false};
+        return {show: false, data: this.props.data};
     },
-    getTags: function(data) {
-        return data.tag.map(function(tag) {
+    getTags: function(way, latest_way) {
+        return way.tag.map(function(tag) {
+            var k = tag['@k'];
+            var v = tag['@v'];
+            var title = tag['@v'];
+            var highlight = '';
+
+            if (latest_way !== undefined) {
+                var match = latest_way.tag.filter(function(t){
+                    return t['@k'] === k;
+                });
+                if(match.length > 0) {
+                    highlight += match[0]['@v'] === v ? '': ' text-danger';
+                    title = match[0]['@v'];
+                } else {
+                    highlight += ' text-success';
+                }
+            }
             return React.createElement(
-                'tr', {key: tag['@k']},
-                React.createElement('td', {className: 'key'}, tag['@k']),
-                React.createElement('td', {className: 'value'}, tag['@v'])
+                'tr', {key: k},
+                React.createElement('td', {className: 'key' + highlight}, k),
+                React.createElement('td', {className: 'value' + highlight, title: title}, v)
             );
         });
     },
@@ -129,12 +145,20 @@ var DataRow = React.createClass({
     },
     render: function() {
         var way = this.props.data['@osm'][0];
-        var tags = this.getTags(way);
+        var latest_way = this.props.data['@osm_current'];
+        var latest_version = null;
+        var tags = this.getTags(way, latest_way);
+
+        if (latest_way !== undefined) {
+            latest_version = latest_way['@version'];
+        }
 
         return (
             React.createElement(
                 'div', {className: 'way-view'},
                 React.createElement('a', {href: "#"+ way['@id'], onClick: this.toggleViewTags}, "OSM Way: " + way['@id']),
+                React.createElement('span', {className: 'version'}, 'v' + way['@version']),
+                latest_version !== null? React.createElement('span', {className: 'latest-version'}, 'v' + latest_version):null,
                 this.state.show ? React.createElement('table', null, tags): null
             )
         );
@@ -232,6 +256,22 @@ var OnaForms = React.createClass({
         };
         auth.xhr(params, callback);
     },
+    setOSMWay: function(osm_id, way) {
+        var osmJXON = JXON.build(way);
+        this.setState({
+            submissions: this.state.submissions.map(function(submission) {
+                var osm = submission['@osm'];
+                if(osm !== undefined) {
+                    if(osm[0]['@id'] === Number.parseInt(osm_id)) {
+                        submission['@osm_current'] = osmJXON.osm.way;
+                    }
+                }
+                return submission;
+            })
+        });
+        console.log(this.state.submissions);
+        console.log(way);
+    },
     submitToOSM: function(e) {
         e.preventDefault();
         var auth = this.props.osmauth;
@@ -312,34 +352,10 @@ var OnaForms = React.createClass({
             url: "http://localhost/api/v1/data/" + formid + ".osm",
             dataType: "xml",
             headers: {'Authorization': 'Token ' + this.state.ona_user.api_token}
-            // success: function(xml) {
-            //     this.props.loadOSMMap(xml);
-            //     // Pull in all changes
-            //     // for each way or node that has @action modify
-            //     // get latest way or node by id
-            //     // apply changes
-            //     // generate osmChange xml
-            //     var osmJXON = JXON.build(xml);
-
-            //     this.setState({osm: xml, osmJXON: osmJXON});
-
-            //     if (Array.isArray(osmJXON.osm.way)) {
-            //         var changes = [];
-            //         osmJXON.osm.way.forEach(function(obj) {
-            //             if(obj["@action"] === "modify") {
-            //                 changes.push(obj);
-            //             }
-            //         });
-            //         this.setState({changes: changes});
-            //     }
-            //     this.combinedData();
-            // }.bind(this),
-            // error: function(err) {
-            //     console.log(err);
-            // }
         });
     },
     loadSubmissions: function(formid, title) {
+        var auth = this.props.osmauth;
         var osmRequest = this.loadOSM(formid);
         var formJsonRequest = this.loadFormJson(formid);
         var dataRequest = $.ajax({
@@ -352,16 +368,34 @@ var OnaForms = React.createClass({
                 var xml = xmlData[0];
                 var formJson = formJsonData[0];
                 var osm_fields = getOSMFields(formJson.children);
-                var submissions = submissionData[0];
+                var submissions = mergeOsmData(xml, submissionData[0], osm_fields);
+
+                // load map
                 this.props.loadOSMMap(xml);
 
+                // pull ways for each submission from OpenStreetMap.org
+                submissions.map(function(submission) {
+                    var osm = submission['@osm'];
+                    console.log(osm, submission._id, submission['@osm']);
+
+                    if(osm !== undefined && osm.length > 0) {
+                        var osm_id = osm[0]['@id'];
+                        this.getOSMWay(osm_id, function(err, way) {
+                            if (err){
+                                console.log(err);
+                                return;
+                            }
+                            this.setOSMWay(osm_id, way);
+                        }.bind(this));
+                    }
+                }.bind(this));
                 this.setState({
                     osm: xml,
                     osm_fields: osm_fields,
                     formid: formid,
                     title: title,
                     formjson: formJson,
-                    submissions: mergeOsmData(xml, submissions, osm_fields)
+                    submissions: submissions
                 });
             }.bind(this)
         );
