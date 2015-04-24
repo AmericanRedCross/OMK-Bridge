@@ -214,16 +214,6 @@ var OnaForms = React.createClass({
             url: 'http://localhost/api/v1/forms/' + formid + '/form.json',
             dataType: 'json',
             headers: {'Authorization': 'Token ' + this.state.ona_user.api_token}
-            // success: function(data) {
-            //     var osm_fields = data.children.filter(function(question){
-            //         return question.type === 'osm';
-            //     });
-            //     this.setState({formjson: data, osm_fields: osm_fields});
-            //     this.combinedData();
-            // }.bind(this),
-            // error: function(err) {
-            //     console.log(err);
-            // }
         });
     },
     getOSMWay: function(id, callback){
@@ -237,8 +227,12 @@ var OnaForms = React.createClass({
     submitToOSM: function(e) {
         e.preventDefault();
         var auth = this.props.osmauth;
-        console.log("User Auth: ", auth.authenticated());
-        this.state.changes.map(function(change) {
+        this.state.submissions.map(function(submission) {
+            var osm = submission['@osm'];
+            if (osm === undefined || osm.length === 0){
+                return submission;
+            }
+            var change = osm[0];
             var id = change['@id'];
             this.getOSMWay(id, function (err, xml) {
                 if(err) {
@@ -304,7 +298,6 @@ var OnaForms = React.createClass({
                 }
             });
         }.bind(this));
-        console.log(this.state.changes);
     },
     loadOSM: function(formid) {
         return $.ajax({
@@ -345,16 +338,6 @@ var OnaForms = React.createClass({
             url: "http://localhost/api/v1/data/" + formid + '.json',
             dataType: "json",
             headers: {'Authorization': 'Token ' + this.state.ona_user.api_token}
-            // success: function(data) {
-            //     this.setState({
-            //         formid: formid,
-            //         title: title,
-            //         submissions: data});
-            //     this.combinedData();
-            // }.bind(this),
-            // error: function(data) {
-            //     console.log(data);
-            // }
         });
         $.when(osmRequest, formJsonRequest, dataRequest).done(
             function(xmlData, formJsonData, submissionData) {
