@@ -117,7 +117,7 @@ var DataRow = React.createClass({
     getTags: function(data) {
         return data.tag.map(function(tag) {
             return React.createElement(
-                'tr', null,
+                'tr', {key: tag['@k']},
                 React.createElement('td', {className: 'key'}, tag['@k']),
                 React.createElement('td', {className: 'value'}, tag['@v'])
             );
