@@ -111,14 +111,31 @@ var FormList = React.createClass({displayName: "FormList",
 });
 
 var DataRow = React.createClass({displayName: "DataRow",
+    getInitialState: function() {
+        return {show: false};
+    },
+    getTags: function(data) {
+        return data.tag.map(function(tag) {
+            return React.createElement(
+                'tr', null,
+                React.createElement('td', {className: 'key'}, tag['@k']),
+                React.createElement('td', {className: 'value'}, tag['@v'])
+            );
+        });
+    },
+    toggleViewTags: function(e) {
+        e.preventDefault();
+        this.setState({show: this.state.show === false});
+    },
     render: function() {
+        var way = this.props.data['@osm'][0];
+        var tags = this.getTags(way);
+
         return (
             React.createElement(
-                'tr', null, React.createElement(
-                    'td', null, " "
-                    // React.createElement('input', {type: "checkbox", value: "{ this.props.submission._id }"})
-                ),
-                React.createElement('td', null, this.props.submission._id)
+                'div', {className: 'way-view'},
+                React.createElement('a', {href: "#"+ way['@id'], onClick: this.toggleViewTags}, "OSM Way: " + way['@id']),
+                this.state.show ? React.createElement('table', null, tags): null
             )
         );
     }
@@ -126,22 +143,13 @@ var DataRow = React.createClass({displayName: "DataRow",
 
 var DataList = React.createClass({displayName: "DataList",
     render: function() {
-        var rows = this.props.data.map(function(submission){
-            return React.createElement(
-                DataRow, {submission: submission, key: submission._id}
-            );
+        var rows = this.props.data.map(function(submission) {
+            return React.createElement(DataRow, {data: submission, key: submission._id});
         });
+
         return (
-            React.createElement(
-                'table', {className: 'table data-list'}, React.createElement(
-                    "thead", null, React.createElement(
-                        "tr", null,
-                        React.createElement("th", {width: "20px"}, " "),
-                        React.createElement("th", null, "Data Id")
-                    )
-                ),
-                React.createElement('tbody', null, rows)
-        ));
+            React.createElement('div', {className: 'data-list'}, rows)
+        );
     }
 });
 
@@ -388,15 +396,15 @@ var OnaForms = React.createClass({displayName: "OnaForms",
                     React.createElement(
                         'form', {onSubmit: this.submitToOSM},
                         React.createElement("button", {type: "submit", className: "btn btn-sm btn-primary btn-block"}, "Submit to OpenStreetMap.org"),
-                        // React.createElement(DataList, {data: this.state.submissions})
-                        React.createElement(
-                            'div', {className: 'data-list'}, React.createElement(
-                                Table, {width: 200, height: 465, rowGetter: this.rowGetter, rowsCount: this.getSize(), rowHeight: 30,
-                                    headerHeight: 30
-                                },
-                                React.createElement(Column, {dataKey: '_id', label: 'Data Id', width: 100})
-                            )
-                        )
+                        React.createElement(DataList, {data: this.state.submissions})
+                        // React.createElement(
+                        //     'div', {className: 'data-list'}, React.createElement(
+                        //         Table, {width: 200, height: 465, rowGetter: this.rowGetter, rowsCount: this.getSize(), rowHeight: 30,
+                        //             headerHeight: 30
+                        //         },
+                        //         React.createElement(Column, {dataKey: '_id', label: 'Data Id', width: 100})
+                        //     )
+                        // )
                     )
                 ): React.createElement(
                     FormList, {data: this.state.forms, loadSubmissions: this.loadSubmissions}

@@ -55,3 +55,15 @@ div.map {
 .data-list {
     margin-top: 5px;
 }
+.way-view {
+    border-bottom: 1px solid;
+    padding: 0.5em;
+}
+.way-view table{
+    /* border-top: 1px solid; */
+    margin-top: 0.3em;
+}
+.way-view table td {
+    padding: 0.1em 0.3em;
+    /* border-top: 1px solid; */
+}
