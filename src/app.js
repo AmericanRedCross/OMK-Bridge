@@ -122,9 +122,9 @@ var DataRow = React.createClass({
             var highlight = '';
 
             if (latest_way !== undefined) {
-                var match = latest_way.tag.filter(function(t){
-                    return t['@k'] === k;
-                });
+                var match = Array.isArray(latest_way.tag) ? latest_way.tag.filter(function(t){
+                        return t['@k'] === k;
+                    }) : latest_way.tag['@k'] === k ? [latest_way.tag]: [];
                 if(match.length > 0) {
                     highlight += match[0]['@v'] === v ? '': ' text-danger';
                     title = match[0]['@v'];
@@ -146,7 +146,7 @@ var DataRow = React.createClass({
     render: function() {
         var way = this.props.data['@osm'][0];
         var latest_way = this.props.data['@osm_current'];
-        var latest_version = null;
+        var latest_version = null, version = way['@version'];
         var tags = this.getTags(way, latest_way);
 
         if (latest_way !== undefined) {
@@ -155,10 +155,12 @@ var DataRow = React.createClass({
 
         return (
             React.createElement(
-                'div', {className: 'way-view'},
+                'div', {className: 'checkbox way-view'},
+                latest_version !== null? React.createElement(
+                    'input', {type: 'checkbox', name: 'osm_id', value: this.props.data._id}):null,
                 React.createElement('a', {href: "#"+ way['@id'], onClick: this.toggleViewTags}, "OSM Way: " + way['@id']),
-                React.createElement('span', {className: 'version'}, 'v' + way['@version']),
-                latest_version !== null? React.createElement('span', {className: 'latest-version'}, 'v' + latest_version):null,
+                React.createElement('span', {className: 'version'}, 'v' + version),
+                latest_version !== null? React.createElement('span', {className: latest_version !== version? 'latest-version': 'version'}, 'v' + latest_version): null,
                 this.state.show ? React.createElement('table', null, tags): null
             )
         );
@@ -230,6 +232,71 @@ var mergeOsmData = function(osm, data, osm_fields) {
     return new_data;
 };
 
+var submitToOSM = function(auth, changes) {
+    // create a changeset
+    var changeset = {
+        osm: {
+            changeset: {
+                tag: {
+                    '@k': 'comment',
+                    '@v': "OMK Push"
+                }
+            }
+        }
+    };
+    auth.xhr({
+        method: 'PUT',
+        path: '/api/0.6/changeset/create',
+        options: { header: { 'Content-Type': 'text/xml' } },
+        content: JXON.stringify(changeset)
+    }, function(changesetErr, changeset_id) {
+        if(changesetErr) {
+            console.log(changesetErr);
+            return;
+        }
+        var osm_changes = changes.map(function(change) {
+            var way = change['@osm'][0];
+            way['@changeset'] = changeset_id;
+            way['@version'] = change['@osm_current']['@version'];
+
+            return way;
+        });
+        console.log(changeset_id);
+        // with changeset_id, upload osmChange
+        var osmChange = {
+            osmChange: {
+                modify: {
+                    way: osm_changes
+                }
+            }
+        };
+
+        auth.xhr({
+            method: 'POST',
+            path: '/api/0.6/changeset/' + changeset_id + '/upload',
+            options: { header: { 'Content-Type': 'text/xml' } },
+            content: JXON.stringify(osmChange)
+        }, function(osmChangeErr, diffResult) {
+            if(osmChangeErr) {
+                console.log(changesetErr);
+                return;
+            }
+            console.log(diffResult);
+            // close changeset
+            auth.xhr({
+                method: 'PUT',
+                path: '/api/0.6/changeset/' + changeset_id + '/close'
+            }, function(closeErr, closeResult) {
+                if(closeErr) {
+                    console.log(closeErr);
+                    return;
+                }
+                console.log(closeResult);
+            });
+        });
+    });
+};
+
 var OnaForms = React.createClass({
     getInitialState: function() {
         return {
@@ -269,83 +336,23 @@ var OnaForms = React.createClass({
                 return submission;
             })
         });
-        console.log(this.state.submissions);
-        console.log(way);
     },
     submitToOSM: function(e) {
         e.preventDefault();
-        var auth = this.props.osmauth;
-        this.state.submissions.map(function(submission) {
-            var osm = submission['@osm'];
-            if (osm === undefined || osm.length === 0){
-                return submission;
-            }
-            var change = osm[0];
-            var id = change['@id'];
-            this.getOSMWay(id, function (err, xml) {
-                if(err) {
-                    console.log(err);
-                } else {
-                    var way = JXON.build(xml).osm.way;
-                    change['@version'] = way['@version'];
-                    var changeset = {
-                        osm: {
-                            changeset: {
-                                tag: {
-                                    '@k': 'comment',
-                                    '@v': "OMK Push"
-                                }
-                            }
-                        }
-                    };
-                    // create a changeset
-                    auth.xhr({
-                        method: 'PUT',
-                        path: '/api/0.6/changeset/create',
-                        options: { header: { 'Content-Type': 'text/xml' } },
-                        content: JXON.stringify(changeset)
-                    }, function(changesetErr, changeset_id) {
-                        if(changesetErr) {
-                            console.log(changesetErr);
-                            return;
-                        }
-                        console.log(changeset_id);
-                        // with changeset_id, upload osmChange
-                        change['@changeset'] = changeset_id;
-                        var osmChange = {
-                            osmChange: {
-                                modify: {
-                                    way: change
-                                }
-                            }
-                        };
-                        auth.xhr({
-                            method: 'POST',
-                            path: '/api/0.6/changeset/' + changeset_id + '/upload',
-                            options: { header: { 'Content-Type': 'text/xml' } },
-                            content: JXON.stringify(osmChange)
-                        }, function(osmChangeErr, diffResult) {
-                            if(osmChangeErr) {
-                                console.log(changesetErr);
-                                return;
-                            }
-                            console.log(diffResult);
-                            // close changeset
-                            auth.xhr({
-                                method: 'PUT',
-                                path: '/api/0.6/changeset/' + changeset_id + '/close'
-                            }, function(closeErr, closeResult) {
-                                if(closeErr) {
-                                    console.log(closeErr);
-                                    return;
-                                }
-                                console.log(closeResult);
-                            });
-                        });
-                    });
-                }
-            });
-        }.bind(this));
+        var checked_osm = [];
+
+        $('input[name=osm_id]:checked').each(function(index, element) {
+            checked_osm.push(Number.parseInt(element.value));
+        });
+
+        var changes = this.state.submissions.filter(function (submission) {
+            return checked_osm.indexOf(submission._id) !== -1;
+        });
+        if(checked_osm.length < 1){
+            return;
+        }
+
+        submitToOSM(this.props.osmauth, changes);
     },
     loadOSM: function(formid) {
         return $.ajax({
@@ -376,7 +383,6 @@ var OnaForms = React.createClass({
                 // pull ways for each submission from OpenStreetMap.org
                 submissions.map(function(submission) {
                     var osm = submission['@osm'];
-                    console.log(osm, submission._id, submission['@osm']);
 
                     if(osm !== undefined && osm.length > 0) {
                         var osm_id = osm[0]['@id'];
