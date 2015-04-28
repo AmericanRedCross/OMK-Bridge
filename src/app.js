@@ -329,7 +329,7 @@ var OnaForms = React.createClass({
     },
     loadFormJson: function(formid) {
         return $.ajax({
-            url: 'http://localhost/api/v1/forms/' + formid + '/form.json',
+            url: 'https://stage.ona.io/api/v1/forms/' + formid + '/form.json',
             dataType: 'json',
             headers: {'Authorization': 'Token ' + this.state.ona_user.api_token}
         });
@@ -375,7 +375,7 @@ var OnaForms = React.createClass({
     },
     loadOSM: function(formid) {
         return $.ajax({
-            url: "http://localhost/api/v1/data/" + formid + ".osm",
+            url: "https://stage.ona.io/api/v1/data/" + formid + ".osm",
             dataType: "xml",
             headers: {'Authorization': 'Token ' + this.state.ona_user.api_token}
         });
@@ -385,7 +385,7 @@ var OnaForms = React.createClass({
         var osmRequest = this.loadOSM(formid);
         var formJsonRequest = this.loadFormJson(formid);
         var dataRequest = $.ajax({
-            url: "http://localhost/api/v1/data/" + formid + '.json',
+            url: "https://stage.ona.io/api/v1/data/" + formid + '.json',
             dataType: "json",
             headers: {'Authorization': 'Token ' + this.state.ona_user.api_token}
         });
@@ -427,7 +427,7 @@ var OnaForms = React.createClass({
     },
     componentDidMount: function() {
         $.ajax({
-            url: "http://localhost/api/v1/forms.json?instances_with_osm=True",
+            url: "https://stage.ona.io/api/v1/forms.json?instances_with_osm=True",
             dataType: "json",
             headers: {'Authorization': 'Token ' + this.state.ona_user.api_token},
             success: function(data) {
@@ -592,6 +592,6 @@ if (window.location.href.search('oauth_token') !== -1){
 }
 
 React.render(
-    React.createElement(MainApp, {onaLoginURL: 'http://localhost/api/v1/user.json'}),
+    React.createElement(MainApp, {onaLoginURL: 'https://stage.ona.io/api/v1/user.json'}),
     document.getElementById("main")
 );
