@@ -7,7 +7,7 @@
         "url": "https://github.com/onaio/ona-osm-map.git"
     },
     "scripts": {
-        "start": "python -m http.server 3000",
+        "start": "http-server -p 3000",
         "watch": "jsx --watch src/ js"
     },
     "dependencies": {
@@ -24,6 +24,7 @@
         "fixed-data-table": "~0.1.2"
     },
     "devDependencies": {
-        "react-tools": "~0.13.1"
+        "react-tools": "~0.13.1",
+        "http-server": "~0.8"
     }
 }
