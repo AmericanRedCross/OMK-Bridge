@@ -168,13 +168,32 @@ var DataRow = React.createClass({
 });
 
 var DataList = React.createClass({
+    selectAll: function(e) {
+        e.preventDefault();
+        $('input[name=osm_id]').each(function(){
+            this.checked = true;
+        });
+    },
+    unselectAll: function(e) {
+        e.preventDefault();
+        $('input[name=osm_id]').each(function(){
+            this.checked = false;
+        });
+    },
     render: function() {
         var rows = this.props.data.map(function(submission) {
             return React.createElement(DataRow, {data: submission, key: submission._id});
         });
 
         return (
-            React.createElement('div', {className: 'data-list'}, rows)
+            React.createElement(
+                'div', {className: 'data-list'},
+                React.createElement(
+                    'div', null,
+                    React.createElement("a", {className: "btn btn-default btn-xs", onClick: this.selectAll}, "Select All"),
+                    React.createElement("a", {className: "btn btn-default btn-xs", onClick: this.unselectAll}, "UnSelect All")
+                ),
+                rows)
         );
     }
 });
