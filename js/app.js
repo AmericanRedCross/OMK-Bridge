@@ -251,7 +251,19 @@ var mergeOsmData = function(osm, data, osm_fields) {
     return new_data;
 };
 
-var submitToOSM = function(auth, changes) {
+var tagOnaSubmission = function(ona_user, formid, submission_id, tag) {
+    $.ajax({
+            url: 'https://stage.ona.io/api/v1/data/' + formid + '/' + submission_id + '/labels.json',
+            dataType: 'json',
+            method: 'POST',
+            data: {tags: tag},
+            headers: {'Authorization': 'Token ' + ona_user.api_token}
+        }).done(function(data) {
+            console.log(data);
+        });
+};
+
+var submitToOSM = function(auth, ona_user, changes, formid) {
     // create a changeset
     var changeset = {
         osm: {
@@ -300,6 +312,9 @@ var submitToOSM = function(auth, changes) {
                 console.log(changesetErr);
                 return;
             }
+            changes.map(function(change) {
+                tagOnaSubmission(ona_user, formid, change._id, 'osm-submitted');
+            });
             console.log(diffResult);
             // close changeset
             auth.xhr({
@@ -324,7 +339,9 @@ var OnaForms = React.createClass({displayName: "OnaForms",
             formid: null,
             formJson: null,
             submissions: [],
-            osm: null
+            osm: null,
+            page: 1,
+            page_size: 1
         };
     },
     loadFormJson: function(formid) {
@@ -371,11 +388,14 @@ var OnaForms = React.createClass({displayName: "OnaForms",
             return;
         }
 
-        submitToOSM(this.props.osmauth, changes);
+        submitToOSM(this.props.osmauth, this.state.ona_user, changes, this.state.formid);
+    },
+    getPagingQuery: function() {
+        return 'page=' + this.state.page + '&page_size=' + this.state.page_size;
     },
     loadOSM: function(formid) {
         return $.ajax({
-            url: "https://stage.ona.io/api/v1/data/" + formid + ".osm",
+            url: "https://stage.ona.io/api/v1/data/" + formid + ".osm?not_tagged=osm-submitted" + this.getPagingQuery(),
             dataType: "xml",
             headers: {'Authorization': 'Token ' + this.state.ona_user.api_token}
         });
@@ -385,7 +405,7 @@ var OnaForms = React.createClass({displayName: "OnaForms",
         var osmRequest = this.loadOSM(formid);
         var formJsonRequest = this.loadFormJson(formid);
         var dataRequest = $.ajax({
-            url: "https://stage.ona.io/api/v1/data/" + formid + '.json',
+            url: "https://stage.ona.io/api/v1/data/" + formid + '.json?not_tagged=osm-submitted&' + this.getPagingQuery(),
             dataType: "json",
             headers: {'Authorization': 'Token ' + this.state.ona_user.api_token}
         });
