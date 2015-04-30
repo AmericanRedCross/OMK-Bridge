@@ -220,9 +220,13 @@ var OSMMap = React.createClass({displayName: "OSMMap",
 });
 
 var getWayByID = function(osm_id, osmJXON) {
+    if (Array.isArray(osmJXON.osm.way)){
     return osmJXON.osm.way.filter(function(way) {
         return way['@id'] === Number.parseInt(osm_id);
     });
+    }
+
+    return osmJXON.osm.way['@id'] === Number.parseInt(osm_id)? [osmJXON.osm.way]: [];
 };
 
 var getOSMFields = function(data) {
@@ -395,7 +399,7 @@ var OnaForms = React.createClass({displayName: "OnaForms",
     },
     loadOSM: function(formid) {
         return $.ajax({
-            url: "https://stage.ona.io/api/v1/data/" + formid + ".osm?not_tagged=osm-submitted" + this.getPagingQuery(),
+            url: "https://stage.ona.io/api/v1/data/" + formid + ".osm?not_tagged=osm-submitted&" + this.getPagingQuery(),
             dataType: "xml",
             headers: {'Authorization': 'Token ' + this.state.ona_user.api_token}
         });
