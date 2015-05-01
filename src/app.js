@@ -168,32 +168,13 @@ var DataRow = React.createClass({
 });
 
 var DataList = React.createClass({
-    selectAll: function(e) {
-        e.preventDefault();
-        $('input[name=osm_id]').each(function(){
-            this.checked = true;
-        });
-    },
-    unselectAll: function(e) {
-        e.preventDefault();
-        $('input[name=osm_id]').each(function(){
-            this.checked = false;
-        });
-    },
     render: function() {
         var rows = this.props.data.map(function(submission) {
             return React.createElement(DataRow, {data: submission, key: submission._id});
         });
 
         return (
-            React.createElement(
-                'div', {className: 'data-list'},
-                React.createElement(
-                    'div', null,
-                    React.createElement("a", {className: "btn btn-default btn-xs", onClick: this.selectAll}, "Select All"),
-                    React.createElement("a", {className: "btn btn-default btn-xs", onClick: this.unselectAll}, "UnSelect All")
-                ),
-                rows)
+            React.createElement('div', {className: 'data-list'}, rows)
         );
     }
 });
@@ -345,7 +326,7 @@ var OnaForms = React.createClass({
             submissions: [],
             osm: null,
             page: 1,
-            page_size: 1
+            page_size: 100
         };
     },
     loadFormJson: function(formid) {
@@ -447,7 +428,13 @@ var OnaForms = React.createClass({
                     submissions: submissions
                 });
             }.bind(this)
-        );
+        ).fail(function(err) {
+            if (err.status === 404) {
+                this.setState({page: this.state.page - 1, submissions: []}, function(){
+                    this.loadSubmissions(this.state.formid, this.state.title);
+                }.bind(this));
+            }
+        }.bind(this));
     },
     componentDidMount: function() {
         $.ajax({
@@ -462,6 +449,18 @@ var OnaForms = React.createClass({
             }
         });
     },
+    selectAll: function(e) {
+        e.preventDefault();
+        $('input[name=osm_id]').each(function(){
+            this.checked = true;
+        });
+    },
+    unselectAll: function(e) {
+        e.preventDefault();
+        $('input[name=osm_id]').each(function(){
+            this.checked = false;
+        });
+    },
     rowGetter: function(rowIndex) {
         if(this.state.submissions.length > 0) {
             return this.state.submissions[rowIndex];
@@ -469,6 +468,20 @@ var OnaForms = React.createClass({
     },
     getSize: function(){
         return this.state.submissions.length;
+    },
+    nextPage: function(e) {
+        e.preventDefault();
+        this.setState({page: this.state.page + 1, submissions: []}, function(){
+            this.loadSubmissions(this.state.formid, this.state.title);
+        }.bind(this));
+    },
+    previousPage: function(e) {
+        e.preventDefault();
+        if(this.state.page !== 1){
+            this.setState({page: this.state.page - 1, submissions: []}, function(){
+                this.loadSubmissions(this.state.formid, this.state.title);
+            }.bind(this));
+        }
     },
     render: function(){
         return (
@@ -479,15 +492,15 @@ var OnaForms = React.createClass({
                     React.createElement(
                         'form', {onSubmit: this.submitToOSM},
                         React.createElement("button", {type: "submit", className: "btn btn-sm btn-primary btn-block"}, "Submit to OpenStreetMap.org"),
+                        React.createElement("br", null),
+                        React.createElement(
+                            'div', null,
+                            React.createElement("a", {onClick: this.previousPage, className: "btn btn-xs btn-default"}, "Previous"),
+                            React.createElement("a", {className: "btn btn-default btn-xs", onClick: this.selectAll}, "Select All"),
+                            React.createElement("a", {className: "btn btn-default btn-xs", onClick: this.unselectAll}, "UnSelect All"),
+                            React.createElement("a", {onClick: this.nextPage, className: "btn btn-xs btn-default btn-next"}, "Next")
+                        ),
                         React.createElement(DataList, {data: this.state.submissions})
-                        // React.createElement(
-                        //     'div', {className: 'data-list'}, React.createElement(
-                        //         Table, {width: 200, height: 465, rowGetter: this.rowGetter, rowsCount: this.getSize(), rowHeight: 30,
-                        //             headerHeight: 30
-                        //         },
-                        //         React.createElement(Column, {dataKey: '_id', label: 'Data Id', width: 100})
-                        //     )
-                        // )
                     )
                 ): React.createElement(
                     FormList, {data: this.state.forms, loadSubmissions: this.loadSubmissions}
@@ -568,7 +581,6 @@ var MainApp = React.createClass({
         return (
             React.createElement(
                 "div", {className: "main-container"},
-                React.createElement("h1", null, "OMK Push"),
                 React.createElement(
                     'div', {className: "row"},
                     React.createElement(
@@ -589,6 +601,7 @@ var MainApp = React.createClass({
                         }): null
                     )
                 ),
+                React.createElement("h1", null, "OMK Push"),
                 this.state.osmauth !== null ? React.createElement(
                     'div', {className: "row"},
                     React.createElement(

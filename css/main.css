@@ -78,3 +78,6 @@ div.map {
 .latest-version {
     color: red;
 }
+.btn-next {
+    float: right;
+}
