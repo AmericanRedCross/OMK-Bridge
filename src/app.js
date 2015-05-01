@@ -636,6 +636,7 @@ var MainApp = React.createClass({
         return (
             React.createElement(
                 "div", {className: "main-container"},
+                this.state.osmauth === null ? React.createElement("h1", null, "OMK Bridge"): null,
                 React.createElement(
                     'div', {className: "row"},
                     React.createElement(
@@ -656,7 +657,7 @@ var MainApp = React.createClass({
                         }): null
                     )
                 ),
-                React.createElement("h1", null, "OMK Push"),
+                this.state.osmauth !== null ? React.createElement("h1", null, "OMK Bridge"): null,
                 this.state.osmauth !== null ? React.createElement(
                     'div', {className: "row"},
                     React.createElement(
