@@ -292,7 +292,7 @@ var submitToOSM = function(auth, ona_user, changes, formid) {
             changeset: {
                 tag: {
                     '@k': 'comment',
-                    '@v': "OMK Push"
+                    '@v': "OMK Bridge"
                 }
             }
         }
