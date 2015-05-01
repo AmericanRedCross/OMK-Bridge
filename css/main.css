@@ -63,7 +63,7 @@ div.map {
     /* border-top: 1px solid; */
     margin-top: 0.3em;
 }
-.way-view table td {
+.way-view table td, .map-popup table td{
     padding: 0.1em 0.3em;
     /* border-top: 1px solid; */
 }

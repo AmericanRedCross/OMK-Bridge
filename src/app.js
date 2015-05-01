@@ -142,6 +142,18 @@ var DataRow = React.createClass({
     toggleViewTags: function(e) {
         e.preventDefault();
         this.setState({show: this.state.show === false});
+        var way_id = e.target.href.split('#').length > 1 ? e.target.href.split('#')[1] : null;
+        if(way_id !== null) {
+            this.props.highlightWay(way_id);
+        }
+    },
+    highlightWay: function(e) {
+        e.preventDefault();
+        var way_id = e.target.href.split('#').length > 1 ? e.target.href.split('#')[1] : null;
+        console.log(e.target);
+        if(way_id !== null) {
+            this.props.highlightWay(way_id);
+        }
     },
     render: function() {
         var way = this.props.data['@osm'][0];
@@ -158,7 +170,7 @@ var DataRow = React.createClass({
                 'div', {className: 'checkbox way-view'},
                 latest_version !== null? React.createElement(
                     'input', {type: 'checkbox', name: 'osm_id', value: this.props.data._id}):null,
-                React.createElement('a', {href: "#"+ way['@id'], onClick: this.toggleViewTags}, "OSM Way: " + way['@id']),
+                React.createElement('a', {href: "#"+ way['@id'], onClick: this.toggleViewTags, onMouseOver: this.highlightWay}, "OSM Way: " + way['@id']),
                 React.createElement('span', {className: 'version'}, 'v' + version),
                 latest_version !== null? React.createElement('span', {className: latest_version !== version? 'latest-version': 'version'}, 'v' + latest_version): null,
                 this.state.show ? React.createElement('table', null, tags): null
@@ -170,8 +182,9 @@ var DataRow = React.createClass({
 var DataList = React.createClass({
     render: function() {
         var rows = this.props.data.map(function(submission) {
-            return React.createElement(DataRow, {data: submission, key: submission._id});
-        });
+            return React.createElement(DataRow, {
+                data: submission, key: submission._id, highlightWay: this.props.highlightWay});
+        }.bind(this));
 
         return (
             React.createElement('div', {className: 'data-list'}, rows)
@@ -187,8 +200,32 @@ var OSMMap = React.createClass({
             'examples.map-i875kd35'
         );
 
-        var layer = new L.OSM.DataLayer(this.props.xml).addTo(map);
-        map.fitBounds(layer.getBounds());
+        var data_layer = new L.OSM.DataLayer(
+            this.props.xml
+        ).eachLayer(function(layer) {
+            var html = '<div class="map-popup"><h4>OSM Way ID: ' + layer.feature.id + "</h4><table>";
+            var i = 0;
+            var tag;
+            for(tag in layer.feature.tags) {
+                if(layer.feature.tags.hasOwnProperty(tag)) {
+                    html += "<tr><td>" + tag + "</td><td>" + layer.feature.tags[tag] + "</td></tr>";
+                }
+            }
+            html += "</table>";
+            layer.bindPopup(html);
+            layer.on({
+                mouseover: function (e) {
+                    var lyr = e.target;
+                    lyr.setStyle({color: "#FF0000"});
+                },
+                mouseout: function (e) {
+                    var lyr = e.target;
+                    lyr.setStyle({color: "#0000FF"});
+                }
+            });
+        }).addTo(map);
+        map.fitBounds(data_layer.getBounds());
+        this.props.setMapDataLayer(data_layer);
     },
     componentWillUnmount: function() {
         this.map = null;
@@ -500,7 +537,7 @@ var OnaForms = React.createClass({
                             React.createElement("a", {className: "btn btn-default btn-xs", onClick: this.unselectAll}, "UnSelect All"),
                             React.createElement("a", {onClick: this.nextPage, className: "btn btn-xs btn-default btn-next"}, "Next")
                         ),
-                        React.createElement(DataList, {data: this.state.submissions})
+                        React.createElement(DataList, {data: this.state.submissions, highlightWay: this.props.highlightWay})
                     )
                 ): React.createElement(
                     FormList, {data: this.state.forms, loadSubmissions: this.loadSubmissions}
@@ -577,6 +614,24 @@ var MainApp = React.createClass({
     loadOSMMap: function(xml) {
         this.setState({osm: xml});
     },
+    setMapDataLayer: function(data_layer) {
+        this.setState({data_layer: data_layer});
+    },
+    highlightWay: function(way_id) {
+        var layer = this.state.data_layer;
+        layer.getLayers().map(function(lyr) {
+            lyr.setStyle({color: "#0000FF"});
+
+            return lyr;
+        }).filter(function(lyr) {
+            return lyr.feature.id === way_id;
+        }).map(function(lyr) {
+            lyr.setStyle({color: "#FF0F0F"});
+            lyr.openPopup();
+
+            return lyr;
+        });
+    },
     render: function(){
         return (
             React.createElement(
@@ -610,12 +665,14 @@ var MainApp = React.createClass({
                             OnaForms, {
                                 ona_user: this.state.ona_user,
                                 osmauth: this.state.osmauth,
-                                loadOSMMap: this.loadOSMMap
+                                loadOSMMap: this.loadOSMMap,
+                                highlightWay: this.highlightWay
                             }): null
                     ),
                     React.createElement(
                         "div", {className: "col-sm-9"},
-                        this.state.osm !== null ? React.createElement(OSMMap, {xml: this.state.osm}): null
+                        this.state.osm !== null ?
+                            React.createElement(OSMMap, {xml: this.state.osm, setMapDataLayer: this.setMapDataLayer}): null
                     )
                 ): null
             )
