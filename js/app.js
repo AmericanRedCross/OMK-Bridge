@@ -115,7 +115,8 @@ var DataRow = React.createClass({displayName: "DataRow",
         return {show: false, data: this.props.data};
     },
     getTags: function(way, latest_way) {
-        return way.tag.map(function(tag) {
+        var tags = Array.isArray(way.tag) ? way.tag : [way.tag];
+        return tags.map(function(tag) {
             var k = tag['@k'];
             var v = tag['@v'];
             var title = tag['@v'];
