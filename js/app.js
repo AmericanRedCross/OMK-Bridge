@@ -255,7 +255,13 @@ var getOSMFields = function(data) {
 
 var mergeOsmData = function(osm, data, osm_fields) {
     var osmJXON = JXON.build(osm);
-    var new_data = data.map(function(obj) {
+    var new_data = data.filter(function(obj) {
+        var fields = osm_fields.filter(function(field) {
+            return obj[field.name] !== undefined;
+        });
+
+        return fields.length > 0;
+    }).map(function(obj) {
         obj['@osm'] = [];
         osm_fields.map(function(field){
             var filename = obj[field.name];
