@@ -112,7 +112,7 @@ var FormList = React.createClass({
 
 var DataRow = React.createClass({
     getInitialState: function() {
-        return {show: false, data: this.props.data};
+        return {show: false, data: this.props.data, conflicts: false};
     },
     getTags: function(way, latest_way) {
         var tags = Array.isArray(way.tag) ? way.tag : [way.tag];
@@ -134,7 +134,7 @@ var DataRow = React.createClass({
                 }
             }
             return React.createElement(
-                'tr', {key: k},
+                'tr', {key: k, className: highlight},
                 React.createElement('td', {className: 'key' + highlight}, k),
                 React.createElement('td', {className: 'value' + highlight, title: title}, v)
             );
@@ -151,7 +151,6 @@ var DataRow = React.createClass({
     highlightWay: function(e) {
         e.preventDefault();
         var way_id = e.target.href.split('#').length > 1 ? e.target.href.split('#')[1] : null;
-        console.log(e.target);
         if(way_id !== null) {
             this.props.highlightWay(way_id);
         }
@@ -161,6 +160,9 @@ var DataRow = React.createClass({
         var latest_way = this.props.data['@osm_current'];
         var latest_version = null, version = way['@version'];
         var tags = this.getTags(way, latest_way);
+        var highlight = tags.filter(function(tag) {
+            return tag.props.className.search('text-danger') > -1;
+        }).length > 0 ? ' bg-danger': '';
 
         if (latest_way !== undefined) {
             latest_version = latest_way['@version'];
@@ -168,8 +170,8 @@ var DataRow = React.createClass({
 
         return (
             React.createElement(
-                'div', {className: 'checkbox way-view'},
-                latest_version !== null? React.createElement(
+                'div', {className: 'checkbox way-view' + highlight},
+                latest_version !== null && highlight === ''? React.createElement(
                     'input', {type: 'checkbox', name: 'osm_id', value: this.props.data._id}):null,
                 React.createElement('a', {href: "#"+ way['@id'], onClick: this.toggleViewTags, onMouseOver: this.highlightWay}, "OSM Way: " + way['@id']),
                 React.createElement('span', {className: 'version'}, 'v' + version),
