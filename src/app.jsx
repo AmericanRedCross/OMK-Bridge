@@ -1,5 +1,6 @@
 var React = require('react');
 var Router = require('react-router');
+var config = require('./config.json');
 var Login = require('./login.jsx');
 var OsmLogin = require('./osm-login.jsx');
 var OnaForms = require('./ona-forms.jsx');
@@ -96,8 +97,8 @@ var App = React.createClass({
     getInitialState: function() {
 
         var osm_options = {
-            oauth_consumer_key: 'OTlOD6gfLnzP0oot7uA0w6GZdBOc5gQXJ0r7cdG4',
-            oauth_secret: 'cHPXxC3JCa9PazwVA5XOQkmh4jQcIdrhFePBmbSJ',
+            oauth_consumer_key: config.oauth_consumer_key,
+            oauth_secret: config.oauth_secret,
             landing: '/',
             auto: true
         };
