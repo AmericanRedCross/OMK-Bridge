@@ -21,7 +21,7 @@ define(["react", "react-router", "jquery", "./auth", "./config.json"], function(
                     fetchOnaForms(ona_user).done(function(data) {
                         this.setState({data: data});
                     }.bind(this)).fail(function(jqXHR, textStatus) {
-                        console.erro("Failed fetching forms from Ona: ", textStatus);
+                        console.error("Failed fetching forms from Ona: ", textStatus);
                     });
                 }
             }
