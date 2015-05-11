@@ -80,7 +80,9 @@ define(["react"], function(React) {
                         'input', {type: 'checkbox', name: 'osm_id', value: this.props.data._id}):null,
                     React.createElement('a', {href: "#"+ way['@id'], onClick: this.toggleViewTags, onMouseOver: this.highlightWay}, "OSM Way: " + way['@id']),
                     React.createElement('span', {className: 'version'}, 'v' + version),
-                    latest_version !== null? React.createElement('span', {className: latest_version !== version? 'latest-version': 'version'}, 'v' + latest_version): null,
+                    latest_version !== null? React.createElement(
+                        'span', {className: latest_version !== version? 'latest-version': 'version'},
+                        React.createElement('a', {href: 'https://www.openstreetmap.org/way/' + way['@id'], target: '_blank'}, 'v' + latest_version)): null,
                     this.state.show ? React.createElement('table', null, tags): null
                 )
             );
