@@ -1,8 +1,8 @@
-/* global define */
-define(["react", "osm-auth"], function(React, osmAuth) {
+/* global define, console */
+define(["react", "osm-auth"], function(React) {
     return React.createClass({
         getInitialState: function() {
-            return {auth: this.props.osm_auth};
+            return {auth: this.props.osmAuth};
         },
         login: function() {
             this.state.auth.xhr({
@@ -12,7 +12,7 @@ define(["react", "osm-auth"], function(React, osmAuth) {
                 if (err) {
                     console.log(err);
                 } else {
-                    this.onChange(this.state.auth);
+                    this.onChange(this.state.auth, details);
                 }
             }.bind(this));
         },
@@ -24,7 +24,7 @@ define(["react", "osm-auth"], function(React, osmAuth) {
             return this.state.auth.authenticated() === true;
         },
         onChange: function(v) {
-            var { router } = this.context;
+            var router = this.context.router;
             if (v !== false ) {
                 router.transitionTo('forms');
             } else {
@@ -37,7 +37,7 @@ define(["react", "osm-auth"], function(React, osmAuth) {
         },
 
         componentDidMount: function(){
-            var { router } = this.context;
+            var router = this.context.router;
             var logout = this.props.query.logout;
             if(logout) {
                 this.logout();

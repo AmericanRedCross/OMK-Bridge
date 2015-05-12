@@ -1,5 +1,7 @@
-/* global define */
+/* global define, window*/
 define(["react", "mapbox.js", "leaflet-osm"], function(React) {
+    'use strict';
+
     var L = window.L;
 
     return React.createClass({
@@ -13,11 +15,10 @@ define(["react", "mapbox.js", "leaflet-osm"], function(React) {
                 'examples.map-i875kd35'
             );
 
-            var data_layer = new L.OSM.DataLayer(
+            var dataLayer = new L.OSM.DataLayer(
                 this.props.xml
             ).eachLayer(function(layer) {
                 var html = '<div class="map-popup"><h4>OSM Way ID: ' + layer.feature.id + "</h4><table>";
-                var i = 0;
                 var tag;
                 for(tag in layer.feature.tags) {
                     if(layer.feature.tags.hasOwnProperty(tag)) {
@@ -37,16 +38,15 @@ define(["react", "mapbox.js", "leaflet-osm"], function(React) {
                     }
                 });
             }).addTo(map);
-            map.fitBounds(data_layer.getBounds());
-            this.props.setMapDataLayer(data_layer);
-            console.log("OSM", 1);
+            map.fitBounds(dataLayer.getBounds());
+            this.props.setMapDataLayer(dataLayer);
         },
         componentWillUnmount: function() {
             this.map = null;
         },
         render: function(){
             return (
-                <div className="map" />
+                React.createElement('div', {className: "map"})
             );
         }
     });

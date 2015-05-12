@@ -1,5 +1,7 @@
-/* global define */
+/* global define, console */
 define(["./digestAuthRequest", "store", "crypto-js", "./config.json"], function(DigestAuthRequest, store, CryptoJS, config) {
+    'use strict';
+
     return {
         login: function(username, password) {
             var url = config.ona_server + "/api/v1/user.json";

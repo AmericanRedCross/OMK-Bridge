@@ -1,10 +1,12 @@
 /* global define */
 define(["react"], function(React) {
+    'use strict';
+
     return React.createClass({
         getInitialState: function() {
             return {show: false, data: this.props.data, conflicts: false};
         },
-        getTags: function(way, latest_way) {
+        getTags: function(way, latestWay) {
             var tags = Array.isArray(way.tag) ? way.tag : [way.tag];
             return tags.map(function(tag) {
                 var k = tag['@k'];
@@ -12,12 +14,12 @@ define(["react"], function(React) {
                 var title = tag['@v'];
                 var highlight = '';
 
-                if (latest_way !== undefined) {
-                    var match = Array.isArray(latest_way.tag) ? latest_way.tag.filter(function(t){
+                if (latestWay !== undefined) {
+                    var match = Array.isArray(latestWay.tag) ? latestWay.tag.filter(function(t){
                             return t['@k'] === k;
-                        }) : latest_way.tag['@k'] === k ? [latest_way.tag]: [];
+                        }) : latestWay.tag['@k'] === k ? [latestWay.tag] : [];
                     if(match.length > 0) {
-                        highlight += match[0]['@v'] === v ? '': ' text-danger';
+                        highlight += match[0]['@v'] === v ? '' : ' text-danger';
                         title = match[0]['@v'];
                     } else {
                         highlight += ' text-success';
@@ -36,22 +38,22 @@ define(["react"], function(React) {
         toggleViewTags: function(e) {
             e.preventDefault();
             this.setState({show: this.state.show === false});
-            var way_id = e.target.href.split('#').length > 1 ? e.target.href.split('#')[1] : null;
-            if(way_id !== null) {
+            var wayId = e.target.href.split('#').length > 1 ? e.target.href.split('#')[1] : null;
+            if(wayId !== null) {
                 this.highlightWay(e);
             }
         },
         highlightWay: function(e) {
             e.preventDefault();
-            var way_id = e.target.href.split('#').length > 1 ? e.target.href.split('#')[1] : null;
-            if(way_id !== null) {
+            var wayId = e.target.href.split('#').length > 1 ? e.target.href.split('#')[1] : null;
+            if(wayId !== null) {
                 var layer = this.props.data_layer;
                 layer.getLayers().map(function(lyr) {
                     lyr.setStyle({color: "#0000FF"});
 
                     return lyr;
                 }).filter(function(lyr) {
-                    return lyr.feature.id === way_id;
+                    return lyr.feature.id === wayId;
                 }).map(function(lyr) {
                     lyr.setStyle({color: "#FF0F0F"});
                     lyr.openPopup();
@@ -62,28 +64,28 @@ define(["react"], function(React) {
         },
         render: function() {
             var way = this.props.data['@osm'][0];
-            var latest_way = this.props.data['@osm_current'];
-            var latest_version = null, version = way['@version'];
-            var tags = this.getTags(way, latest_way);
+            var latestWay = this.props.data['@osm_current'];
+            var latestVersion = null, version = way['@version'];
+            var tags = this.getTags(way, latestWay);
             var highlight = tags.filter(function(tag) {
                 return tag.props.className.search('text-danger') > -1;
-            }).length > 0 ? ' bg-danger': '';
+            }).length > 0 ? ' bg-danger' : '';
 
-            if (latest_way !== undefined) {
-                latest_version = latest_way['@version'];
+            if (latestWay !== undefined) {
+                latestVersion = latestWay['@version'];
             }
 
             return (
                 React.createElement(
                     'div', {className: 'checkbox way-view' + highlight},
-                    latest_version !== null? React.createElement(
-                        'input', {type: 'checkbox', name: 'osm_id', value: this.props.data._id}):null,
-                    React.createElement('a', {href: "#"+ way['@id'], onClick: this.toggleViewTags, onMouseOver: this.highlightWay}, "OSM Way: " + way['@id']),
+                    latestVersion !== null ? React.createElement(
+                        'input', {type: 'checkbox', name: 'osm_id', value: this.props.data._id}) : null,
+                    React.createElement('a', {href: "#" + way['@id'], onClick: this.toggleViewTags, onMouseOver: this.highlightWay}, "OSM Way: " + way['@id']),
                     React.createElement('span', {className: 'version'}, 'v' + version),
-                    latest_version !== null? React.createElement(
-                        'span', {className: latest_version !== version? 'latest-version': 'version'},
-                        React.createElement('a', {href: 'https://www.openstreetmap.org/way/' + way['@id'], target: '_blank'}, 'v' + latest_version)): null,
-                    this.state.show ? React.createElement('table', null, tags): null
+                    latestVersion !== null ? React.createElement(
+                        'span', {className: latestVersion !== version ? 'latest-version' : 'version'},
+                        React.createElement('a', {href: 'https://www.openstreetmap.org/way/' + way['@id'], target: '_blank'}, 'v' + latestVersion)) : null,
+                    this.state.show ? React.createElement('table', null, tags) : null
                 )
             );
         }

@@ -3,8 +3,10 @@
 
 // dependent upon CryptoJS MD5 hashing:
 // http://crypto-js.googlecode.com/svn/tags/3.1.2/build/rollups/md5.js
-/* global define */
+/* global define, console, XMLHttpRequest*/
 define(['crypto-js'], function(CryptoJS) {
+    'use strict';
+
     return function(method, url, username, password) {
 
         var self = this;
@@ -24,7 +26,9 @@ define(['crypto-js'], function(CryptoJS) {
 
         // determine if a post, so that request will send data
         this.post = false;
-        if (method.toLowerCase() == 'post' || method.toLowerCase() == 'put') this.post = true;
+        if (method.toLowerCase() === 'post' || method.toLowerCase() === 'put') {
+            this.post = true;
+        }
 
         // start here
         // successFn - will be passed JSON data
@@ -32,7 +36,9 @@ define(['crypto-js'], function(CryptoJS) {
         // data - optional, for POSTS
         this.request = function(successFn, errorFn, data) {
             // posts data as JSON if there is any
-            if (data !== null) self.data = JSON.stringify(data);
+            if (data !== null) {
+                self.data = JSON.stringify(data);
+            }
             self.successFn = successFn;
             self.errorFn = errorFn;
 
@@ -42,24 +48,25 @@ define(['crypto-js'], function(CryptoJS) {
                 self.makeAuthenticatedRequest();
             }
         };
-        this.makeUnauthenticatedRequest = function(data) {
+        this.makeUnauthenticatedRequest = function() {
             self.firstRequest = new XMLHttpRequest();
             self.firstRequest.open(method, url, true);
             self.firstRequest.timeout = self.timeout;
             // if we are posting, add appropriate headers
-            if (self.post)
+            if (self.post){
                 self.firstRequest.setRequestHeader('Content-type', 'application/json');
+            }
 
             self.firstRequest.onreadystatechange = function() {
 
                 // 2: received headers,  3: loading, 4: done
-                if (self.firstRequest.readyState == 2) {
+                if (self.firstRequest.readyState === 2) {
 
                     var responseHeaders = self.firstRequest.getAllResponseHeaders();
                     responseHeaders = responseHeaders.split('\n');
                     // get authenticate header
                     var digestHeaders;
-                    for(var i = 0; i < responseHeaders.length; i++) {
+                    for(var i = 0; i < responseHeaders.length; i++ ) {
                         if (responseHeaders[i].match(/www-authenticate/i) != null) {
                             digestHeaders = responseHeaders[i];
                         }
@@ -70,7 +77,7 @@ define(['crypto-js'], function(CryptoJS) {
                         digestHeaders = digestHeaders.split(':').slice(1).join(':');
                         digestHeaders = digestHeaders.split(',');
                         self.scheme = digestHeaders[0].split(/\s/)[1];
-                        for(var i = 0; i < digestHeaders.length; i++) {
+                        for(i = 0; i < digestHeaders.length; i++ ) {
                             var keyVal = digestHeaders[i].split('=');
                             var key = keyVal[0];
                             var val = keyVal[1].replace(/\"/g, '').trim();
@@ -99,9 +106,11 @@ define(['crypto-js'], function(CryptoJS) {
                         self.makeAuthenticatedRequest();
                     }
                 }
-                if (self.firstRequest.readyState == 4) {
-                    if (self.firstRequest.status == 200) {
-                        if (self.loggingOn) console.log('[digestAuthRequest] Authentication not required for '+url);
+                if (self.firstRequest.readyState === 4) {
+                    if (self.firstRequest.status === 200) {
+                        if (self.loggingOn) {
+                            console.log('[digestAuthRequest] Authentication not required for ' + url);
+                        }
                         if (self.firstRequest.responseText !== 'undefined') {
                             if (self.firstRequest.responseText.length > 0) {
                                 // If JSON, parse and return object
@@ -116,7 +125,7 @@ define(['crypto-js'], function(CryptoJS) {
                         }
                     }
                 }
-            }
+            };
             // send
             if (self.post) {
                 // in case digest auth not required
@@ -124,38 +133,43 @@ define(['crypto-js'], function(CryptoJS) {
             } else {
                 self.firstRequest.send();
             }
-            if (self.loggingOn) console.log('[digestAuthRequest] Unauthenticated request to '+url);
+            if (self.loggingOn) {
+                console.log('[digestAuthRequest] Unauthenticated request to ' + url);
+            }
 
             // handle error
             self.firstRequest.onerror = function() {
                 if (self.firstRequest.status !== 401) {
-                    if (self.loggingOn) console.log('[digestAuthRequest] Error ('+self.authenticatedRequest.status+') on unauthenticated request to '+url);
+                    if (self.loggingOn) {
+                        console.log('[digestAuthRequest] Error (' + self.authenticatedRequest.status + ') on unauthenticated request to ' + url);
+                    }
                     self.errorFn(self.firstRequest.status);
                 }
-            }
+            };
 
-        }
-        this.makeAuthenticatedRequest= function() {
+        };
+        this.makeAuthenticatedRequest = function() {
 
             self.response = self.formulateResponse();
 
             self.authenticatedRequest = new XMLHttpRequest();
             self.authenticatedRequest.open(method, url, true);
             self.authenticatedRequest.timeout = self.timeout;
-            var digestAuthHeader = self.scheme+' '+
-                'username="'+username+'", '+
-                'realm="'+self.realm+'", '+
-                'nonce="'+self.nonce+'", '+
-                'uri="'+url+'", '+
-                'response="'+self.response+'", '+
-                'opaque="'+self.opaque+'", '+
-                'qop='+self.qop+', '+
-                'nc='+('00000000' + self.nc).slice(-8)+', '+
-                'cnonce="'+self.cnonce+'"';
+            var digestAuthHeader = self.scheme + ' ' +
+                'username="' + username + '", ' +
+                'realm="' + self.realm + '", ' +
+                'nonce="' + self.nonce + '", ' +
+                'uri="' + url + '", ' +
+                'response="' + self.response + '", ' +
+                'opaque="' + self.opaque + '", ' +
+                'qop=' + self.qop + ', ' +
+                'nc=' + ('00000000' + self.nc).slice(-8) + ', ' +
+                'cnonce="' + self.cnonce + '"';
             self.authenticatedRequest.setRequestHeader('Authorization', digestAuthHeader);
             // if we are posting, add appropriate headers
-            if (self.post)
+            if (self.post) {
                 self.authenticatedRequest.setRequestHeader('Content-type', 'application/json');
+            }
 
             self.authenticatedRequest.onload = function() {
                 // success
@@ -181,10 +195,12 @@ define(['crypto-js'], function(CryptoJS) {
                     self.nonce = null;
                     self.errorFn(self.authenticatedRequest.status);
                 }
-            }
+            };
             // handle errors
             self.authenticatedRequest.onerror = function() {
-                if (self.loggingOn) console.log('[digestAuthRequest] Error ('+self.authenticatedRequest.status+') on authenticated request to '+url);
+                if (self.loggingOn) {
+                    console.log('[digestAuthRequest] Error (' + self.authenticatedRequest.status + ') on authenticated request to ' + url);
+                }
                 self.nonce = null;
                 self.errorFn(self.authenticatedRequest.status);
             };
@@ -194,17 +210,19 @@ define(['crypto-js'], function(CryptoJS) {
             } else {
                 self.authenticatedRequest.send();
             }
-            if (self.loggingOn) console.log('[digestAuthRequest] Authenticated request to '+url);
-        }
+            if (self.loggingOn) {
+                console.log('[digestAuthRequest] Authenticated request to ' + url);
+            }
+        };
         // hash response based on server challenge
         this.formulateResponse = function() {
-            var HA1 = CryptoJS.MD5(username+':'+self.realm+':'+password).toString();
-            var HA2 = CryptoJS.MD5(method+':'+url).toString();
-            var response = CryptoJS.MD5(HA1+':'+
-                self.nonce+':'+
-                ('00000000' + self.nc).slice(-8)+':'+
-                self.cnonce+':'+
-                self.qop+':'+
+            var HA1 = CryptoJS.MD5(username + ':' + self.realm + ':' + password).toString();
+            var HA2 = CryptoJS.MD5(method + ':' + url).toString();
+            var response = CryptoJS.MD5(HA1 + ':' +
+                self.nonce + ':' +
+                ('00000000' + self.nc).slice(-8) + ':' +
+                self.cnonce + ':' +
+                self.qop + ':' +
                 HA2).toString();
             return response;
         };
@@ -212,19 +230,25 @@ define(['crypto-js'], function(CryptoJS) {
         this.generateCnonce = function() {
             var characters = 'abcdef0123456789';
             var token = '';
-            for (var i = 0; i < 16; i++) {
+            for (var i = 0; i < 16; i++ ) {
                 var randNum = Math.round(Math.random() * characters.length);
                 token += characters.substr(randNum, 1);
             }
             return token;
         };
         this.abort = function() {
-            if (self.loggingOn) console.log('[digestAuthRequest] Aborted request to '+url);
+            if (self.loggingOn) {
+                console.log('[digestAuthRequest] Aborted request to ' + url);
+            }
             if (self.firstRequest != null) {
-                if (self.firstRequest.readyState != 4) self.firstRequest.abort();
+                if (self.firstRequest.readyState !== 4) {
+                    self.firstRequest.abort();
+                }
             }
             if (self.authenticatedRequest != null) {
-                if (self.authenticatedRequest.readyState != 4) self.authenticatedRequest.abort();
+                if (self.authenticatedRequest.readyState !== 4) {
+                    self.authenticatedRequest.abort();
+                }
             }
         };
         this.isJson = function(str) {

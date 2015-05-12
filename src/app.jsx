@@ -1,3 +1,4 @@
+/* global require, window, document, opener */
 var React = require('react');
 var Router = require('react-router');
 var config = require('./config.json');
@@ -10,7 +11,7 @@ var NotFoundRoute = Router.NotFoundRoute;
 var RouteHandler = Router.RouteHandler;
 var auth = require('./auth');
 var osmAuth = require('osm-auth');
-var {Link} = Router;
+var Link = Router.Link;
 
 var About = React.createClass({
     render: function() {
@@ -49,7 +50,7 @@ var Logout = React.createClass({
     },
 
     componentDidMount: function() {
-        var { router } = this.context;
+        var router = this.context.router;
         auth.logout();
         router.transitionTo('login');
     },
@@ -76,7 +77,7 @@ var UserMenu = React.createClass({
         return false;
     },
     render: function() {
-        var name = this.props.ona_user !== null ? this.props.ona_user.name : '';
+        var name = this.props.onaUser !== null ? this.props.onaUser.name : '';
         return (
             <div className="auth-dropdown dropdown right">
                 <a href="#" onClick={this.handleUserClick}>
@@ -96,17 +97,17 @@ var UserMenu = React.createClass({
 var App = React.createClass({
     getInitialState: function() {
 
-        var osm_options = {
-            oauth_consumer_key: config.oauth_consumer_key,
-            oauth_secret: config.oauth_secret,
+        var osmOptions = {
+            'oauth_consumer_key': config.oauth_consumer_key,
+            'oauth_secret': config.oauth_secret,
             landing: '/',
             auto: true
         };
 
-        return {osm_auth: osmAuth(osm_options)};
+        return {osmAuth: osmAuth(osmOptions)};
     },
-    setOnaUser: function(ona_user) {
-        this.setState({ona_user: ona_user});
+    setOnaUser: function(onaUser) {
+        this.setState({onaUser: onaUser});
     },
 
     contextTypes: {
@@ -114,19 +115,26 @@ var App = React.createClass({
     },
 
     componentDidMount: function() {
-        var { router } = this.context;
+        var router = this.context.router;
         if(auth.isLoggedIn()){
-            var ona_user = auth.getUser();
-            if(!this.state.osm_auth.authenticated()) {
+            var onaUser = auth.getUser();
+            if(!this.state.osmAuth.authenticated()) {
                 router.transitionTo('osm-login');
             } else {
-                this.setOnaUser(ona_user);
-                router.transitionTo('forms');
+                this.setOnaUser(onaUser);
+                var formid = router.getCurrentParams().formid;
+                if(formid !== undefined) {
+                    var currentPage = Number.parseInt(router.getCurrentQuery().page ? router.getCurrentQuery().page : 1);
+                    var size = Number.parseInt(router.getCurrentQuery().size ? router.getCurrentQuery().size : 50);
+                    router.transitionTo('form-data', {formid: formid}, {page: currentPage, size: size});
+                } else {
+                    router.transitionTo('forms');
+                }
             }
         }
     },
     render: function() {
-        var ona_user = auth.isLoggedIn() ? auth.getUser(): null;
+        var onaUser = auth.isLoggedIn() ? auth.getUser() : null;
         return (
             <div>
                 <div className="navbar pure-g">
@@ -135,12 +143,12 @@ var App = React.createClass({
                         {auth.isLoggedIn() ? <Menu /> : null}
                     </div>
                     <div className="pure-u-1-3">
-                        {auth.isLoggedIn() ? <UserMenu ona_user={ona_user} /> : null}
+                        {auth.isLoggedIn() ? <UserMenu onaUser={onaUser} /> : null}
                     </div>
                 </div>
                 <div className="pure-g">
                     <div className="pure-u-1-1">
-                        <RouteHandler ona_user={ona_user} osm_auth={this.state.osm_auth} />
+                        <RouteHandler onaUser={onaUser} osmAuth={this.state.osmAuth} />
                     </div>
                 </div>
             </div>

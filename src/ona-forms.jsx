@@ -1,24 +1,27 @@
-/* global define */
+/* global define, console */
 define(["react", "react-router", "jquery", "./auth", "./config.json"], function(React, Router, $, auth, config) {
-    var fetchOnaForms = function(ona_user) {
+    'use strict';
+
+    var Link = Router.Link;
+
+    var fetchOnaForms = function(onaUser) {
         return $.ajax({
             url: config.ona_server + "/api/v1/forms.json",
-            data: {instances_with_osm: "True"},
+            data: {"instances_with_osm": "True"},
             dataType: "json",
-            headers: {"Authorization": "Token  " + ona_user.api_token}
+            headers: {"Authorization": "Token  " + onaUser.api_token}
         });
     };
-    var {Link} = Router;
 
     return React.createClass({
         getInitialState: function() {
-            return {data: this.props.data !== undefined ? this.props.data: []};
+            return {data: this.props.data !== undefined ? this.props.data : []};
         },
         componentDidMount: function() {
             if(auth.isLoggedIn()) {
-                var ona_user = auth.getUser();
-                if (ona_user) {
-                    fetchOnaForms(ona_user).done(function(data) {
+                var onaUser = auth.getUser();
+                if (onaUser) {
+                    fetchOnaForms(onaUser).done(function(data) {
                         this.setState({data: data});
                     }.bind(this)).fail(function(jqXHR, textStatus) {
                         console.error("Failed fetching forms from Ona: ", textStatus);
@@ -31,7 +34,7 @@ define(["react", "react-router", "jquery", "./auth", "./config.json"], function(
                 return (
                     <tr key={form.formid}>
                         <td>
-                            <Link to="form-data" params={{formid: form.formid}} query={{page: 1, page_size: 50}}>{form.title}</Link></td>
+                            <Link to="form-data" params={{formid: form.formid}} query={{page: 1, size: 50}}>{form.title}</Link></td>
                         <td>{form.num_of_submissions}</td>
                     </tr>
                 );
@@ -53,7 +56,7 @@ define(["react", "react-router", "jquery", "./auth", "./config.json"], function(
                                 {rows}
                             </tbody>
                         </table>
-                        {this.state.data.length < 1 ?<div className="fa fa-2x fa-spin fa-spinner"></div> : <br />}
+                        {this.state.data.length < 1 ? <div className="fa fa-2x fa-spin fa-spinner"></div> : <br />}
                     </div>
                     <div className="pure-u-2-5">
                         <div className="big-hint t-center">

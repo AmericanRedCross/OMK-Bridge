@@ -9,13 +9,13 @@ define(["react", "./auth"], function(React, auth) {
         },
 
         componentDidMount: function() {
-            var { router } = this.context;
+            var router = this.context.router;
             if(auth.isLoggedIn()) {
                 router.transitionTo('/');
             }
         },
         loginSuccess: function(data) {
-            var { router } = this.context;
+            var router = this.context.router;
             if (data.api_token !== undefined) {
                 router.transitionTo('osm-login');
             } else {
@@ -40,7 +40,7 @@ define(["react", "./auth"], function(React, auth) {
                     <form className="pure-form pure-form-stacked" method="post" onSubmit={this.handleSubmit}>
                     {this.state.error ? <div className="alert alert-error">
                         <i className="fa fa-times"></i> Enter the correct Username and Password
-                    </div>: null}
+                    </div> : null}
                     <div className="pure-control-group">
                         <label htmlFor="username">Username</label>
                         <input type="text" name="username" ref="username" placeholder="Ona Username" autoFocus="true" />

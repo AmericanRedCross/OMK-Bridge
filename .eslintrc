@@ -1,0 +1,19 @@
+{
+    "settings": {
+        "ecmascript": 6,
+        "jsx": true
+    },
+    "ecmaFeatures": {
+        "jsx": true
+    },
+    "plugins": [
+        "react"
+    ],
+    "rules": {
+        "strict": "function",
+        "new-cap": false,
+        "quotes": "single",
+        "no-underscore-dangle": false,
+        "no-console": false
+    }
+}
